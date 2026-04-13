@@ -1,0 +1,15 @@
+Controls
+Core
+Forms
+Helper
+Properties
+App.config
+Commands.cs
+Csv.dll
+packages.config
+Program.cs
+Settings.cs
+UE4.ico
+UE4localizationsTool.csproj
+UE4localizationsTool.csproj.DotSettings
+UpdateInfo.txt
