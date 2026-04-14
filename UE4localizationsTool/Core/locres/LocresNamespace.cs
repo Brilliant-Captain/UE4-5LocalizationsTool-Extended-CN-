@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Windows.Forms;
 using UE4localizationsTool.Core.Hash;
+using UE4localizationsTool.Helper;
 
 namespace UE4localizationsTool.Core.locres
 {
@@ -486,6 +487,7 @@ namespace UE4localizationsTool.Core.locres
             var dataTable = new System.Data.DataTable();
             dataTable.Columns.Add("Name", typeof(string));
             dataTable.Columns.Add("Text value", typeof(string));
+            dataTable.Columns.Add(DoubaoTranslationService.PreviewColumnName, typeof(string));
             dataTable.Columns.Add("Hash Table", typeof(HashTable));
 
             foreach (var names in this)
@@ -494,12 +496,17 @@ namespace UE4localizationsTool.Core.locres
                 {
                     string name = string.IsNullOrEmpty(names.Name) ? table.key : names.Name + "::" + table.key;
                     string textValue = table.Value;
-                    dataTable.Rows.Add(name, textValue, new HashTable(names.NameHash, table.keyHash, table.ValueHash));
+                    dataTable.Rows.Add(name, textValue, "", new HashTable(names.NameHash, table.keyHash, table.ValueHash));
                 }
             }
 
             dataGrid.DataSource = dataTable;
             dataGrid.Columns["Text value"].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+            dataGrid.Columns["Text value"].FillWeight = 50F;
+            dataGrid.Columns[DoubaoTranslationService.PreviewColumnName].AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+            dataGrid.Columns[DoubaoTranslationService.PreviewColumnName].FillWeight = 50F;
+            dataGrid.Columns[DoubaoTranslationService.PreviewColumnName].ReadOnly = true;
+            dataGrid.Columns[DoubaoTranslationService.PreviewColumnName].ToolTipText = "该列仅显示豆包翻译预览，不参与保存。";
             dataGrid.Columns["Hash Table"].Visible = false;
         }
 
