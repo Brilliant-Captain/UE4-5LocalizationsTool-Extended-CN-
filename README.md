@@ -1,14 +1,14 @@
-# UE4 本地化工具 v0.2.8
+# UE4/5 本地化工具功能扩展中文版 v0.2.9
 
 ## 1. 工具简介
 
-本工具用于查看、编辑、合并和处理 UE4 本地化相关文件，当前主要支持：
+本工具用于查看、编辑、合并和处理 UE4/5 本地化相关文件，当前主要支持：
 
 - `.locres`
 - `.uasset`
 - `.umap`
 
-本次汉化与功能维护版本新增了多项 `Locres` 处理功能、哈希处理功能，以及更方便的查找与筛选功能。
+本次汉化与功能维护版本新增了多项 `Locres` 处理功能、哈希处理功能、更方便的查找与筛选功能，以及机器翻译预览与翻译接口设置功能。
 
 原项目作者：
 
@@ -102,6 +102,22 @@
 ### 6.4 合并 Locres 文件
 
 将多个 Locres 文件内容合并到当前文件中。
+
+### 6.5 翻译预览
+
+打开机器翻译预览窗口，支持选择翻译接口、源语言、目标语言和翻译范围。
+
+### 6.6 应用选中预览至文本值
+
+将当前选中行中的 `机器翻译预览` 内容写入 `Text value`，并同步更新 `Value hash`。
+
+### 6.7 应用全部预览至文本值
+
+将所有已有 `机器翻译预览` 内容写入 `Text value`，并同步更新 `Value hash`。
+
+### 6.8 按行号批量选中
+
+支持按行号快速选择指定多行，快捷键为 `Ctrl + Shift + G`。
 
 ## 7. Locres 新增功能
 
@@ -205,6 +221,7 @@
 - 蓝色：`本次追加`
 - 浅绿：`哈希覆盖`
 - 浅青：`哈希重算`
+- 浅黄：`机器翻译预览`
 
 说明：
 
@@ -249,9 +266,58 @@
 3. 检查浅青色高亮条目
 4. 保存
 
-## 11. 命令行用法
+### 场景五：先预览机器翻译再手动确认写入
 
-### 11.1 导出单个文件
+建议步骤：
+
+1. 在 `工具 -> 翻译接口设置...` 中保存所需接口凭证
+2. 打开 `.locres`
+3. 根据需要先手动选中部分行，或使用 `Ctrl + Shift + G` 按行号批量选中
+4. 执行 `翻译预览...`
+5. 选择接口、源语言、目标语言与翻译范围
+6. 检查 `机器翻译预览` 列中的结果
+7. 执行 `应用选中预览至文本值` 或 `应用全部预览至文本值`
+8. 保存
+
+## 11. 机器翻译预览
+
+打开 `.locres` 文件后，可通过 `Locres 操作 -> 翻译预览...` 使用机器翻译功能。
+
+当前支持接口：
+
+- `豆包`
+- `谷歌`
+- `百度`
+- `腾讯`
+
+支持设置：
+
+- 源语言
+- 目标语言
+- 翻译范围
+  - `仅翻译当前选中行`
+  - `翻译前 N 行`
+  - `翻译全部可用行`
+
+使用说明：
+
+- 第一次使用前，先到 `工具 -> 翻译接口设置...` 保存接口凭证
+- 翻译结果会写入右侧 `机器翻译预览` 列
+- 预览列仅用于查看和对比，不会自动保存，也不会自动覆盖原文本
+- 执行“应用预览”后，程序会把预览内容写入 `Text value` 并同步更新 `Value hash`
+- 翻译接口配置文件保存在：
+  - `%LocalAppData%\\UE4本地化工具\\translation-settings.json`
+- 如果需要手动修改接口配置，可直接编辑该 `json` 文件
+
+按行号批量选中支持格式：
+
+- `15`
+- `1-20`
+- `1-10,15,18-30`
+
+## 12. 命令行用法
+
+### 12.1 导出单个文件
 
 ```bash
 UE4localizationsTool.exe export <Locres/Uasset/Umap 文件路径> <选项>
@@ -263,7 +329,7 @@ UE4localizationsTool.exe export <Locres/Uasset/Umap 文件路径> <选项>
 UE4localizationsTool.exe export Actions.uasset
 ```
 
-### 11.2 导入单个文件
+### 12.2 导入单个文件
 
 ```bash
 UE4localizationsTool.exe import <txt 文件路径> <选项>
@@ -275,7 +341,7 @@ UE4localizationsTool.exe import <txt 文件路径> <选项>
 UE4localizationsTool.exe import Actions.uasset.txt
 ```
 
-### 11.3 导入单个文件但不重命名
+### 12.3 导入单个文件但不重命名
 
 ```bash
 UE4localizationsTool.exe -import <txt 文件路径> <选项>
@@ -287,7 +353,7 @@ UE4localizationsTool.exe -import <txt 文件路径> <选项>
 UE4localizationsTool.exe -import Actions.uasset.txt
 ```
 
-### 11.4 批量导出文件夹内文件
+### 12.4 批量导出文件夹内文件
 
 ```bash
 UE4localizationsTool.exe exportall <文件夹> <输出文本文件> <选项>
@@ -299,7 +365,7 @@ UE4localizationsTool.exe exportall <文件夹> <输出文本文件> <选项>
 UE4localizationsTool.exe exportall Actions text.txt
 ```
 
-### 11.5 批量导入文件夹内文件
+### 12.5 批量导入文件夹内文件
 
 ```bash
 UE4localizationsTool.exe importall <文件夹> <文本文件> <选项>
@@ -311,7 +377,7 @@ UE4localizationsTool.exe importall <文件夹> <文本文件> <选项>
 UE4localizationsTool.exe importall Actions text.txt
 ```
 
-### 11.6 批量导入但不重命名
+### 12.6 批量导入但不重命名
 
 ```bash
 UE4localizationsTool.exe -importall <文件夹> <文本文件> <选项>
@@ -323,7 +389,7 @@ UE4localizationsTool.exe -importall <文件夹> <文本文件> <选项>
 UE4localizationsTool.exe -importall Actions text.txt
 ```
 
-### 11.7 命令行选项
+### 12.7 命令行选项
 
 #### 使用 GUI 中最后一次筛选条件
 
@@ -369,18 +435,21 @@ UE4localizationsTool.exe export Actions.uasset -method2
 UE4localizationsTool.exe export Actions.uasset -method2 -NoName -filter
 ```
 
-## 12. 注意事项
+## 13. 注意事项
 
 - 在执行覆盖类操作前，建议先备份原文件
 - `只覆盖哈希（文本不同）` 和 `只覆盖哈希（同名强制）` 都可能造成“当前文本”和“文本哈希”不一致，请按需求使用
 - 如果你修改了文本内容，通常更推荐最后执行一次 `重算所有哈希值`
+- 机器翻译预览不会自动保存，也不会自动覆盖原文件
+- 各翻译接口凭证会单独保存到本机用户目录，不会写入项目源码
+- 本机接口配置文件默认路径：`%LocalAppData%\\UE4本地化工具\\translation-settings.json`
 - 如果顶部内容显示较多，可以拖拽窗口边缘自由调整大小
 
-## 13. 关于本版本
+## 14. 关于本版本
 
 当前版本：
 
-- `UE4 本地化工具 v0.2.8`
+- `UE4/5 本地化工具功能扩展中文版 v0.2.9`
 
 赞助链接：
 
