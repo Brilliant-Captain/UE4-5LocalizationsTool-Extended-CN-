@@ -1,3 +1,3 @@
 ﻿UpdateFile
-Tool_UpdateVer  = 0.2.8
-Tool_UpdateSite = https://github.com/amrshaheen61/UE4LocalizationsTool/releases/tag/v0.2.8
+Tool_UpdateVer  = 0.2.9
+Tool_UpdateSite = https://github.com/Brilliant-Captain/UE4-5LocalizationsTool-Extended-CN/releases/tag/v0.2.9
