@@ -10,5 +10,5 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyCopyright("Copyright © 2022 Amr Shaheen，中文界面整理版")]
 [assembly: AssemblyTrademark("UE4 本地化工具")]
 [assembly: ComVisible(false)]
-[assembly: AssemblyVersion("0.2.8.0")]
-[assembly: AssemblyFileVersion("0.2.8")]
+[assembly: AssemblyVersion("0.2.9.0")]
+[assembly: AssemblyFileVersion("0.2.9")]
