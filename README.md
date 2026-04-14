@@ -1,5 +1,8 @@
 # UE4/5 本地化工具功能扩展中文版 v0.2.9
 
+<img width="1020" height="485" alt="0 2 9 UI" src="https://github.com/user-attachments/assets/253451fd-b77d-49f8-987f-6697dac5409e" />
+
+
 ## 1. 工具简介
 
 本工具用于查看、编辑、合并和处理 UE4/5 本地化相关文件，当前主要支持：
