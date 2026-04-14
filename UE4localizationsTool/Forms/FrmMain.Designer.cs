@@ -67,6 +67,7 @@ namespace UE4localizationsTool
             this.rightToLeftToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.darkModeToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.Checkforupdates = new System.Windows.Forms.ToolStripMenuItem();
+            this.translationSettingsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator4 = new System.Windows.Forms.ToolStripSeparator();
             this.Method2 = new System.Windows.Forms.ToolStripMenuItem();
             this.UseFixedSize = new System.Windows.Forms.ToolStripMenuItem();
@@ -88,6 +89,10 @@ namespace UE4localizationsTool
             this.editSelectedRowToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.removeSelectedRowToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.addNewRowToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.batchSelectLocresRowsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.doubaoTranslateToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.applyTranslationPreviewToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.applyAllTranslationPreviewToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.mergeLocresFileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.appendMissingLocresEntriesToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.overwriteLocresDifferentValuesToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -197,6 +202,7 @@ namespace UE4localizationsTool
             this.rightToLeftToolStripMenuItem,
             this.darkModeToolStripMenuItem,
             this.Checkforupdates,
+            this.translationSettingsToolStripMenuItem,
             this.toolStripSeparator4,
             this.Method2,
             this.UseFixedSize});
@@ -423,6 +429,13 @@ namespace UE4localizationsTool
             this.Checkforupdates.Text = "检查更新";
             this.Checkforupdates.CheckedChanged += new System.EventHandler(this.Checkforupdates_CheckedChanged);
             // 
+            // translationSettingsToolStripMenuItem
+            // 
+            this.translationSettingsToolStripMenuItem.Name = "translationSettingsToolStripMenuItem";
+            this.translationSettingsToolStripMenuItem.Size = new System.Drawing.Size(229, 22);
+            this.translationSettingsToolStripMenuItem.Text = "翻译接口设置...";
+            this.translationSettingsToolStripMenuItem.Click += new System.EventHandler(this.translationSettingsToolStripMenuItem_Click);
+            // 
             // toolStripSeparator4
             // 
             this.toolStripSeparator4.Name = "toolStripSeparator4";
@@ -573,6 +586,10 @@ namespace UE4localizationsTool
             this.editSelectedRowToolStripMenuItem,
             this.removeSelectedRowToolStripMenuItem,
             this.addNewRowToolStripMenuItem,
+            this.batchSelectLocresRowsToolStripMenuItem,
+            this.doubaoTranslateToolStripMenuItem,
+            this.applyTranslationPreviewToolStripMenuItem,
+            this.applyAllTranslationPreviewToolStripMenuItem,
             this.mergeLocresFileToolStripMenuItem,
             this.appendMissingLocresEntriesToolStripMenuItem,
             this.overwriteLocresDifferentValuesToolStripMenuItem,
@@ -606,59 +623,93 @@ namespace UE4localizationsTool
             this.addNewRowToolStripMenuItem.Text = "新增行";
             this.addNewRowToolStripMenuItem.Click += new System.EventHandler(this.addNewRowToolStripMenuItem_Click);
             // 
+            // batchSelectLocresRowsToolStripMenuItem
+            // 
+            this.batchSelectLocresRowsToolStripMenuItem.Name = "batchSelectLocresRowsToolStripMenuItem";
+            this.batchSelectLocresRowsToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)(((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Shift) 
+            | System.Windows.Forms.Keys.G)));
+            this.batchSelectLocresRowsToolStripMenuItem.Size = new System.Drawing.Size(233, 22);
+            this.batchSelectLocresRowsToolStripMenuItem.Text = "按行号批量选中...";
+            this.batchSelectLocresRowsToolStripMenuItem.Click += new System.EventHandler(this.batchSelectLocresRowsToolStripMenuItem_Click);
+            // 
+            // doubaoTranslateToolStripMenuItem
+            // 
+            this.doubaoTranslateToolStripMenuItem.Name = "doubaoTranslateToolStripMenuItem";
+            this.doubaoTranslateToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)(((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Shift) 
+            | System.Windows.Forms.Keys.T)));
+            this.doubaoTranslateToolStripMenuItem.Size = new System.Drawing.Size(233, 22);
+            this.doubaoTranslateToolStripMenuItem.Text = "翻译预览...";
+            this.doubaoTranslateToolStripMenuItem.Click += new System.EventHandler(this.doubaoTranslateToolStripMenuItem_Click);
+            // 
+            // applyTranslationPreviewToolStripMenuItem
+            // 
+            this.applyTranslationPreviewToolStripMenuItem.Name = "applyTranslationPreviewToolStripMenuItem";
+            this.applyTranslationPreviewToolStripMenuItem.ShortcutKeys = ((System.Windows.Forms.Keys)(((System.Windows.Forms.Keys.Control | System.Windows.Forms.Keys.Shift) 
+            | System.Windows.Forms.Keys.Enter)));
+            this.applyTranslationPreviewToolStripMenuItem.Size = new System.Drawing.Size(233, 22);
+            this.applyTranslationPreviewToolStripMenuItem.Text = "应用选中预览至文本值";
+            this.applyTranslationPreviewToolStripMenuItem.Click += new System.EventHandler(this.applyTranslationPreviewToolStripMenuItem_Click);
+            // 
+            // applyAllTranslationPreviewToolStripMenuItem
+            // 
+            this.applyAllTranslationPreviewToolStripMenuItem.Name = "applyAllTranslationPreviewToolStripMenuItem";
+            this.applyAllTranslationPreviewToolStripMenuItem.Size = new System.Drawing.Size(233, 22);
+            this.applyAllTranslationPreviewToolStripMenuItem.Text = "应用全部预览至文本值";
+            this.applyAllTranslationPreviewToolStripMenuItem.Click += new System.EventHandler(this.applyAllTranslationPreviewToolStripMenuItem_Click);
+            // 
             // mergeLocresFileToolStripMenuItem
             // 
             this.mergeLocresFileToolStripMenuItem.Name = "mergeLocresFileToolStripMenuItem";
-            this.mergeLocresFileToolStripMenuItem.Size = new System.Drawing.Size(203, 22);
+            this.mergeLocresFileToolStripMenuItem.Size = new System.Drawing.Size(233, 22);
             this.mergeLocresFileToolStripMenuItem.Text = "合并 Locres 文件";
             this.mergeLocresFileToolStripMenuItem.Click += new System.EventHandler(this.mergeLocresFileToolStripMenuItem_Click);
             // 
             // appendMissingLocresEntriesToolStripMenuItem
             // 
             this.appendMissingLocresEntriesToolStripMenuItem.Name = "appendMissingLocresEntriesToolStripMenuItem";
-            this.appendMissingLocresEntriesToolStripMenuItem.Size = new System.Drawing.Size(203, 22);
+            this.appendMissingLocresEntriesToolStripMenuItem.Size = new System.Drawing.Size(233, 22);
             this.appendMissingLocresEntriesToolStripMenuItem.Text = "追加旧 Locres 独有条目";
             this.appendMissingLocresEntriesToolStripMenuItem.Click += new System.EventHandler(this.appendMissingLocresEntriesToolStripMenuItem_Click);
             // 
             // overwriteLocresDifferentValuesToolStripMenuItem
             // 
             this.overwriteLocresDifferentValuesToolStripMenuItem.Name = "overwriteLocresDifferentValuesToolStripMenuItem";
-            this.overwriteLocresDifferentValuesToolStripMenuItem.Size = new System.Drawing.Size(203, 22);
+            this.overwriteLocresDifferentValuesToolStripMenuItem.Size = new System.Drawing.Size(233, 22);
             this.overwriteLocresDifferentValuesToolStripMenuItem.Text = "覆盖差异文本值";
             this.overwriteLocresDifferentValuesToolStripMenuItem.Click += new System.EventHandler(this.overwriteLocresDifferentValuesToolStripMenuItem_Click);
             // 
             // overwriteMatchingHashesToolStripMenuItem
             // 
             this.overwriteMatchingHashesToolStripMenuItem.Name = "overwriteMatchingHashesToolStripMenuItem";
-            this.overwriteMatchingHashesToolStripMenuItem.Size = new System.Drawing.Size(203, 22);
+            this.overwriteMatchingHashesToolStripMenuItem.Size = new System.Drawing.Size(233, 22);
             this.overwriteMatchingHashesToolStripMenuItem.Text = "只覆盖哈希（文本一致）";
             this.overwriteMatchingHashesToolStripMenuItem.Click += new System.EventHandler(this.overwriteMatchingHashesToolStripMenuItem_Click);
             // 
             // overwriteDifferentHashesToolStripMenuItem
             // 
             this.overwriteDifferentHashesToolStripMenuItem.Name = "overwriteDifferentHashesToolStripMenuItem";
-            this.overwriteDifferentHashesToolStripMenuItem.Size = new System.Drawing.Size(203, 22);
+            this.overwriteDifferentHashesToolStripMenuItem.Size = new System.Drawing.Size(233, 22);
             this.overwriteDifferentHashesToolStripMenuItem.Text = "只覆盖哈希（文本不同）";
             this.overwriteDifferentHashesToolStripMenuItem.Click += new System.EventHandler(this.overwriteDifferentHashesToolStripMenuItem_Click);
             // 
             // forceOverwriteHashesToolStripMenuItem
             // 
             this.forceOverwriteHashesToolStripMenuItem.Name = "forceOverwriteHashesToolStripMenuItem";
-            this.forceOverwriteHashesToolStripMenuItem.Size = new System.Drawing.Size(203, 22);
+            this.forceOverwriteHashesToolStripMenuItem.Size = new System.Drawing.Size(233, 22);
             this.forceOverwriteHashesToolStripMenuItem.Text = "只覆盖哈希（同名强制）";
             this.forceOverwriteHashesToolStripMenuItem.Click += new System.EventHandler(this.forceOverwriteHashesToolStripMenuItem_Click);
             // 
             // recalculateAllHashesToolStripMenuItem
             // 
             this.recalculateAllHashesToolStripMenuItem.Name = "recalculateAllHashesToolStripMenuItem";
-            this.recalculateAllHashesToolStripMenuItem.Size = new System.Drawing.Size(203, 22);
+            this.recalculateAllHashesToolStripMenuItem.Size = new System.Drawing.Size(233, 22);
             this.recalculateAllHashesToolStripMenuItem.Text = "重算所有哈希值";
             this.recalculateAllHashesToolStripMenuItem.Click += new System.EventHandler(this.recalculateAllHashesToolStripMenuItem_Click);
             // 
             // mergeUassetFileToolStripMenuItem
             // 
             this.mergeUassetFileToolStripMenuItem.Name = "mergeUassetFileToolStripMenuItem";
-            this.mergeUassetFileToolStripMenuItem.Size = new System.Drawing.Size(203, 22);
+            this.mergeUassetFileToolStripMenuItem.Size = new System.Drawing.Size(233, 22);
             this.mergeUassetFileToolStripMenuItem.Text = "合并 Uasset 文件（测试）";
             this.mergeUassetFileToolStripMenuItem.Click += new System.EventHandler(this.mergeUassetFileToolStripMenuItem_Click);
             // 
@@ -865,6 +916,7 @@ namespace UE4localizationsTool
         private System.Windows.Forms.DataGridViewTextBoxColumn TextValue;
         private System.Windows.Forms.DataGridViewTextBoxColumn Index;
         private System.Windows.Forms.ToolStripMenuItem Checkforupdates;
+        private System.Windows.Forms.ToolStripMenuItem translationSettingsToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem csvFileToolStripMenuItem;
         private Controls.SearchBox searchBox;
         private System.Windows.Forms.ToolStripMenuItem clearFilterToolStripMenuItem;
@@ -883,6 +935,10 @@ namespace UE4localizationsTool
         private ToolStripMenuItem editSelectedRowToolStripMenuItem;
         private ToolStripMenuItem removeSelectedRowToolStripMenuItem;
         private ToolStripMenuItem addNewRowToolStripMenuItem;
+        private ToolStripMenuItem batchSelectLocresRowsToolStripMenuItem;
+        private ToolStripMenuItem doubaoTranslateToolStripMenuItem;
+        private ToolStripMenuItem applyTranslationPreviewToolStripMenuItem;
+        private ToolStripMenuItem applyAllTranslationPreviewToolStripMenuItem;
         private ToolStripMenuItem mergeLocresFileToolStripMenuItem;
         private ToolStripMenuItem appendMissingLocresEntriesToolStripMenuItem;
         private ToolStripMenuItem overwriteLocresDifferentValuesToolStripMenuItem;

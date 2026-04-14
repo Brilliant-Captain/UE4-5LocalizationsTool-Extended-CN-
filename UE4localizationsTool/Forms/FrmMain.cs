@@ -10,6 +10,7 @@ using System.Net;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Microsoft.VisualBasic;
 using UE4localizationsTool.Controls;
 using UE4localizationsTool.Core.Hash;
 using UE4localizationsTool.Core.locres;
@@ -20,6 +21,8 @@ namespace UE4localizationsTool
 {
     public partial class FrmMain : NForm
     {
+        private const string TranslationPreviewColumnName = DoubaoTranslationService.PreviewColumnName;
+
         private sealed class LocresEntrySnapshot
         {
             public string Name { get; set; }
@@ -109,6 +112,29 @@ namespace UE4localizationsTool
         private void CreateBackupList()
         {
             Asset.AddItemsToDataGridView(dataGridView1);
+            ConfigureLocresPreviewColumn();
+        }
+
+        private void ConfigureLocresPreviewColumn()
+        {
+            DataGridViewColumn previewColumn = dataGridView1.Columns[TranslationPreviewColumnName];
+            if (previewColumn == null)
+            {
+                return;
+            }
+
+            previewColumn.ReadOnly = true;
+            previewColumn.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+            previewColumn.FillWeight = 50F;
+            previewColumn.HeaderText = TranslationPreviewColumnName;
+            previewColumn.ToolTipText = "该列仅显示豆包翻译预览，不参与保存。";
+
+            DataGridViewColumn textValueColumn = dataGridView1.Columns["Text value"];
+            if (textValueColumn != null)
+            {
+                textValueColumn.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+                textValueColumn.FillWeight = 50F;
+            }
         }
 
         private string BuildLocresName(string nameSpaceValue, string keyValue)
@@ -229,6 +255,21 @@ namespace UE4localizationsTool
             return await Task.Run(() => new LocresFile(ofd.FileName));
         }
 
+        private void AddLocresGridRow(System.Data.DataTable dataTable, string name, string textValue, HashTable hashTable)
+        {
+            DataRow row = dataTable.NewRow();
+            row["Name"] = name;
+            row["Text value"] = textValue ?? "";
+            row["Hash Table"] = hashTable;
+
+            if (dataTable.Columns.Contains(TranslationPreviewColumnName))
+            {
+                row[TranslationPreviewColumnName] = "";
+            }
+
+            dataTable.Rows.Add(row);
+        }
+
         private void AppendMissingEntriesFromOldLocres(LocresFile oldLocres)
         {
             var currentEntries = GetCurrentLocresEntries();
@@ -256,7 +297,7 @@ namespace UE4localizationsTool
                     continue;
                 }
 
-                dataTable.Rows.Add(oldEntry.Name, oldEntry.TextValue, oldEntry.HashTable);
+                AddLocresGridRow(dataTable, oldEntry.Name, oldEntry.TextValue, oldEntry.HashTable);
                 currentEntries[oldEntry.Name] = oldEntry;
                 appendedNames.Add(oldEntry.Name);
                 addedCount++;
@@ -537,6 +578,341 @@ namespace UE4localizationsTool
                 MessageBoxIcon.Information);
 
             return changedCount;
+        }
+
+        private bool EnsureLocresTranslationReady()
+        {
+            if (!EnsureLocresAssetLoaded())
+            {
+                return false;
+            }
+
+            if (dataGridView1.Columns[TranslationPreviewColumnName] == null)
+            {
+                MessageBox.Show("当前表格未启用翻译预览列，请重新打开 Locres 文件后再试。", "无法执行", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return false;
+            }
+
+            return true;
+        }
+
+        private List<DataGridViewRow> GetSelectedUniqueRows()
+        {
+            return dataGridView1.SelectedCells
+                .Cast<DataGridViewCell>()
+                .Where(cell => cell?.OwningRow != null && !cell.OwningRow.IsNewRow)
+                .Select(cell => cell.OwningRow)
+                .Distinct()
+                .OrderBy(row => row.Index)
+                .ToList();
+        }
+
+        private List<DataGridViewRow> GetTranslationTargetRows(
+            DoubaoTranslationScope scope,
+            int rowCountLimit,
+            bool skipPreviewedRows,
+            out int emptyTextSkippedCount,
+            out int previewSkippedCount)
+        {
+            emptyTextSkippedCount = 0;
+            previewSkippedCount = 0;
+
+            IEnumerable<DataGridViewRow> sourceRows =
+                scope == DoubaoTranslationScope.SelectedRows
+                    ? GetSelectedUniqueRows()
+                    : dataGridView1.Rows.Cast<DataGridViewRow>().Where(row => !row.IsNewRow);
+
+            var targetRows = new List<DataGridViewRow>();
+
+            foreach (DataGridViewRow row in sourceRows)
+            {
+                string textValue = row.Cells["Text value"].Value?.ToString() ?? "";
+                if (string.IsNullOrWhiteSpace(textValue))
+                {
+                    emptyTextSkippedCount++;
+                    continue;
+                }
+
+                if (skipPreviewedRows && !string.IsNullOrWhiteSpace(row.Cells[TranslationPreviewColumnName].Value?.ToString()))
+                {
+                    previewSkippedCount++;
+                    continue;
+                }
+
+                targetRows.Add(row);
+                if (scope == DoubaoTranslationScope.FirstNRows && targetRows.Count >= rowCountLimit)
+                {
+                    break;
+                }
+            }
+
+            return targetRows;
+        }
+
+        private string BuildTranslationScopeDescription(DoubaoTranslationScope scope)
+        {
+            switch (scope)
+            {
+                case DoubaoTranslationScope.SelectedRows:
+                    return "当前选中行";
+                case DoubaoTranslationScope.FirstNRows:
+                    return "前 N 行";
+                default:
+                    return "全部可用行";
+            }
+        }
+
+        private List<DataGridViewRow> GetRowsWithPreviewToApply(bool selectedOnly)
+        {
+            IEnumerable<DataGridViewRow> sourceRows = selectedOnly
+                ? GetSelectedUniqueRows()
+                : dataGridView1.Rows.Cast<DataGridViewRow>().Where(row => !row.IsNewRow);
+
+            return sourceRows
+                .Where(row => !string.IsNullOrWhiteSpace(row.Cells[TranslationPreviewColumnName].Value?.ToString()))
+                .ToList();
+        }
+
+        private int ApplyTranslationPreviewToTextValue(bool selectedOnly)
+        {
+            if (!EnsureLocresTranslationReady())
+            {
+                return -1;
+            }
+
+            List<DataGridViewRow> targetRows = GetRowsWithPreviewToApply(selectedOnly);
+            if (targetRows.Count == 0)
+            {
+                MessageBox.Show(
+                    selectedOnly
+                        ? "当前选中行里没有可应用的机器翻译预览。"
+                        : "当前没有可应用的机器翻译预览。",
+                    "无法执行",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+                return 0;
+            }
+
+            DialogResult confirm = MessageBox.Show(
+                (selectedOnly ? "已选中行" : "全部行") + "中检测到 " + targetRows.Count + " 条可应用的机器翻译预览。\n确认将这些预览写入“Text value”并同步更新文本哈希吗？\n\n说明：预览列内容会保留，不会被清空。",
+                "确认应用预览",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question);
+
+            if (confirm != DialogResult.Yes)
+            {
+                return -1;
+            }
+
+            int changedCount = 0;
+            foreach (DataGridViewRow row in targetRows)
+            {
+                string previewText = row.Cells[TranslationPreviewColumnName].Value?.ToString() ?? "";
+                string currentText = row.Cells["Text value"].Value?.ToString() ?? "";
+
+                if (!string.Equals(currentText, previewText, StringComparison.Ordinal))
+                {
+                    dataGridView1.SetValue(row.Cells["Text value"], previewText);
+                    changedCount++;
+                }
+
+                var currentHash = row.Cells["Hash Table"].Value as HashTable;
+                var updatedHash = new HashTable(
+                    currentHash?.NameHash ?? 0,
+                    currentHash?.KeyHash ?? 0,
+                    previewText.StrCrc32());
+
+                dataGridView1.SetValue(row.Cells["Hash Table"], updatedHash);
+            }
+
+            MessageBox.Show(
+                "应用完成。\n已写入文本值：" + changedCount + "\n已同步更新文本哈希：" + targetRows.Count,
+                "完成",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information);
+
+            return changedCount;
+        }
+
+        private async Task TranslateRowsWithProviderAsync(
+            List<DataGridViewRow> targetRows,
+            TranslationProviderType providerType,
+            TranslationProviderSettings providerSettings,
+            string sourceLanguageCode,
+            string targetLanguageCode,
+            bool preserveFormatting)
+        {
+            var service = TranslationProviderFactory.Create(providerSettings, providerType);
+            int successCount = 0;
+            int failedCount = 0;
+            var errorMessages = new List<string>();
+
+            try
+            {
+                for (int i = 0; i < targetRows.Count; i++)
+                {
+                    DataGridViewRow row = targetRows[i];
+                    string entryName = row.Cells["Name"].Value?.ToString() ?? ("第 " + (row.Index + 1) + " 行");
+                    string textValue = row.Cells["Text value"].Value?.ToString() ?? "";
+
+                    StatusMessage("正在调用" + TranslationProviderHelper.GetDisplayName(providerType) + "翻译...", "正在翻译 " + (i + 1) + "/" + targetRows.Count + " 行：" + entryName);
+
+                    try
+                    {
+                        string translatedText = await service.TranslateAsync(textValue, sourceLanguageCode, targetLanguageCode, preserveFormatting);
+                        dataGridView1.SetValue(row.Cells[TranslationPreviewColumnName], translatedText);
+                        dataGridView1.HighlightTranslationPreviewCell(row.Cells[TranslationPreviewColumnName]);
+                        successCount++;
+                    }
+                    catch (Exception ex)
+                    {
+                        failedCount++;
+                        if (errorMessages.Count < 5)
+                        {
+                            errorMessages.Add("第 " + (row.Index + 1) + " 行：" + ex.Message);
+                        }
+                    }
+                }
+            }
+            finally
+            {
+                CloseFromState();
+            }
+
+            string message =
+                "翻译完成。\n" +
+                "已生成预览：" + successCount + "\n" +
+                "失败：" + failedCount + "\n" +
+                "说明：本次仅写入右侧“" + TranslationPreviewColumnName + "”列，不会自动保存或覆盖原文本。";
+
+            if (errorMessages.Count > 0)
+            {
+                message += "\n\n错误示例：\n" + string.Join("\n", errorMessages);
+            }
+
+            MessageBox.Show(
+                message,
+                failedCount > 0 ? "部分完成" : "完成",
+                MessageBoxButtons.OK,
+                failedCount > 0 ? MessageBoxIcon.Warning : MessageBoxIcon.Information);
+        }
+
+        private List<int> ParseRequestedRowIndexes(string input, int totalRowCount)
+        {
+            var rowIndexes = new SortedSet<int>();
+            string[] parts = input.Split(new[] { ',', '，', ';', '；' }, StringSplitOptions.RemoveEmptyEntries);
+
+            foreach (string rawPart in parts)
+            {
+                string part = rawPart.Trim();
+                if (string.IsNullOrWhiteSpace(part))
+                {
+                    continue;
+                }
+
+                string[] rangeItems = part.Split(new[] { '-' }, StringSplitOptions.RemoveEmptyEntries);
+                if (rangeItems.Length == 1)
+                {
+                    int rowNumber = ParseRowNumber(rangeItems[0], totalRowCount);
+                    rowIndexes.Add(rowNumber - 1);
+                    continue;
+                }
+
+                if (rangeItems.Length != 2)
+                {
+                    throw new FormatException("无法解析行号片段：" + part);
+                }
+
+                int start = ParseRowNumber(rangeItems[0], totalRowCount);
+                int end = ParseRowNumber(rangeItems[1], totalRowCount);
+                if (end < start)
+                {
+                    int temp = start;
+                    start = end;
+                    end = temp;
+                }
+
+                for (int rowNumber = start; rowNumber <= end; rowNumber++)
+                {
+                    rowIndexes.Add(rowNumber - 1);
+                }
+            }
+
+            return rowIndexes.ToList();
+        }
+
+        private int ParseRowNumber(string text, int totalRowCount)
+        {
+            if (!int.TryParse(text.Trim(), out int rowNumber))
+            {
+                throw new FormatException("无效的行号：" + text);
+            }
+
+            if (rowNumber < 1 || rowNumber > totalRowCount)
+            {
+                throw new ArgumentOutOfRangeException(nameof(text), "行号超出范围：" + rowNumber + "。当前可选范围为 1-" + totalRowCount + "。");
+            }
+
+            return rowNumber;
+        }
+
+        private void SelectRowsByInput()
+        {
+            if (!EnsureLocresTranslationReady())
+            {
+                return;
+            }
+
+            int totalRowCount = dataGridView1.Rows.Cast<DataGridViewRow>().Count(row => !row.IsNewRow);
+            if (totalRowCount == 0)
+            {
+                MessageBox.Show("当前没有可选中的行。", "无法执行", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            string input = Interaction.InputBox(
+                "请输入要选中的行号，支持格式：1-10,15,20-25\n行号按当前表格显示顺序，从 1 开始。",
+                "按行号批量选中",
+                "");
+
+            if (string.IsNullOrWhiteSpace(input))
+            {
+                return;
+            }
+
+            try
+            {
+                List<int> rowIndexes = ParseRequestedRowIndexes(input, totalRowCount);
+                if (rowIndexes.Count == 0)
+                {
+                    MessageBox.Show("没有解析出任何有效行号。", "无法执行", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                DataGridViewRow firstRow = dataGridView1.Rows[rowIndexes[0]];
+                dataGridView1.ClearSelection();
+                dataGridView1.CurrentCell = firstRow.Cells["Text value"];
+                foreach (int rowIndex in rowIndexes)
+                {
+                    DataGridViewRow row = dataGridView1.Rows[rowIndex];
+                    foreach (DataGridViewCell cell in row.Cells)
+                    {
+                        if (cell.OwningColumn.Visible)
+                        {
+                            cell.Selected = true;
+                        }
+                    }
+                }
+
+                dataGridView1.FirstDisplayedScrollingRowIndex = firstRow.Index;
+                dataGridView1.Focus();
+
+                MessageBox.Show("已批量选中 " + rowIndexes.Count + " 行。", "完成", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("批量选中行号时发生错误：\n" + ex.Message, "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void ResetControls()
@@ -1078,7 +1454,7 @@ namespace UE4localizationsTool
                             {
                                 string name = string.IsNullOrEmpty(names.Name) ? table.key : names.Name + "::" + table.key;
                                 string textValue = table.Value;
-                                dataTable.Rows.Add(name, textValue, new HashTable(names.NameHash, table.keyHash, table.ValueHash));
+                                AddLocresGridRow(dataTable, name, textValue, new HashTable(names.NameHash, table.keyHash, table.ValueHash));
                             }
                         }
                     }
@@ -1291,7 +1667,7 @@ namespace UE4localizationsTool
                             var locresasset = Asset as LocresFile;
                             var HashTable = new HashTable(locresasset.CalcHash(Strings.NameSpace), locresasset.CalcHash(Strings.Key), Strings.Value.StrCrc32());
 
-                            dataTable.Rows.Add(Strings.GetName(), Strings.Value, HashTable);
+                            AddLocresGridRow(dataTable, Strings.GetName(), Strings.Value, HashTable);
                         }
                     }
 
@@ -1314,9 +1690,86 @@ namespace UE4localizationsTool
             searchBox.ShowReplacePanel();
         }
 
+        private async void doubaoTranslateToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (!EnsureLocresTranslationReady())
+            {
+                return;
+            }
+
+            using (var dialog = new FrmDoubaoTranslate(GetSelectedUniqueRows().Count))
+            {
+                if (dialog.ShowDialog(this) != DialogResult.OK)
+                {
+                    return;
+                }
+
+                int emptyTextSkippedCount;
+                int previewSkippedCount;
+                List<DataGridViewRow> targetRows = GetTranslationTargetRows(
+                    dialog.TranslationScope,
+                    dialog.RowCountLimit,
+                    dialog.SkipPreviewedRows,
+                    out emptyTextSkippedCount,
+                    out previewSkippedCount);
+
+                if (targetRows.Count == 0)
+                {
+                    MessageBox.Show(
+                        "没有找到可翻译的行。\n" +
+                        "范围：" + BuildTranslationScopeDescription(dialog.TranslationScope) + "\n" +
+                        "空文本跳过：" + emptyTextSkippedCount + "\n" +
+                        "已有预览跳过：" + previewSkippedCount,
+                        "无法执行",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Information);
+                    return;
+                }
+
+                try
+                {
+                    await TranslateRowsWithProviderAsync(
+                        targetRows,
+                        dialog.SelectedProvider,
+                        dialog.CurrentSettings,
+                        dialog.SourceLanguageCode,
+                        dialog.TargetLanguageCode,
+                        dialog.PreserveFormatting);
+                }
+                catch (Exception ex)
+                {
+                    CloseFromState();
+                    MessageBox.Show("执行豆包翻译时发生错误：\n" + ex.Message, "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        private void batchSelectLocresRowsToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            SelectRowsByInput();
+        }
+
+        private void applyTranslationPreviewToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            ApplyTranslationPreviewToTextValue(true);
+        }
+
+        private void applyAllTranslationPreviewToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            ApplyTranslationPreviewToTextValue(false);
+        }
+
+        private void translationSettingsToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            using (var dialog = new FrmTranslationSettings())
+            {
+                dialog.ShowDialog(this);
+            }
+        }
+
         private async Task CheckForUpdatesAsync()
         {
-            const string updateUrl = "https://raw.githubusercontent.com/amrshaheen61/UE4LocalizationsTool/master/UE4localizationsTool/UpdateInfo.txt";
+            const string updateUrl = "https://raw.githubusercontent.com/Brilliant-Captain/UE4-5LocalizationsTool-Extended-CN/main/UE4localizationsTool/UpdateInfo.txt";
 
             try
             {
