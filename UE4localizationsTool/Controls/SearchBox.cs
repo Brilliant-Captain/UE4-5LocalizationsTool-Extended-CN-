@@ -7,6 +7,23 @@ namespace UE4localizationsTool.Controls
 {
     public partial class SearchBox : UserControl
     {
+        private sealed class SearchColumnItem
+        {
+            public SearchColumnItem(string columnName, string displayName)
+            {
+                ColumnName = columnName ?? "";
+                DisplayName = displayName ?? "";
+            }
+
+            public string ColumnName { get; }
+
+            public string DisplayName { get; }
+
+            public override string ToString()
+            {
+                return DisplayName;
+            }
+        }
 
         private string ColumnName = "Text value";
 
@@ -69,14 +86,14 @@ namespace UE4localizationsTool.Controls
                 return;
             }
 
-            string selectedColumn = SearchColumn.SelectedItem?.ToString() ?? ColumnName;
+            string selectedColumn = GetSelectedColumnName();
 
             SearchColumn.Items.Clear();
             foreach (DataGridViewColumn column in DataGridView.Columns)
             {
                 if (column.Visible)
                 {
-                    SearchColumn.Items.Add(column.Name);
+                    SearchColumn.Items.Add(new SearchColumnItem(column.Name, GetColumnDisplayName(column)));
                 }
             }
 
@@ -85,26 +102,36 @@ namespace UE4localizationsTool.Controls
                 return;
             }
 
-            if (SearchColumn.Items.Contains(selectedColumn))
+            SearchColumnItem selectedItem = FindColumnItem(selectedColumn);
+            if (selectedItem != null)
             {
-                SearchColumn.SelectedItem = selectedColumn;
-            }
-            else if (SearchColumn.Items.Contains("Text value"))
-            {
-                SearchColumn.SelectedItem = "Text value";
+                SearchColumn.SelectedItem = selectedItem;
             }
             else
             {
-                SearchColumn.SelectedIndex = 0;
+                SearchColumnItem textValueItem = FindColumnItem("Text value");
+                if (textValueItem != null)
+                {
+                    SearchColumn.SelectedItem = textValueItem;
+                }
+                else
+                {
+                    SearchColumn.SelectedIndex = 0;
+                }
             }
 
-            ColumnName = SearchColumn.SelectedItem?.ToString() ?? ColumnName;
+            ColumnName = GetSelectedColumnName();
         }
 
         private DataGridViewCell GetSearchCellForRow(int rowIndex)
         {
             EnsureSearchColumns();
             return DataGridView.Rows[rowIndex].Cells[ColumnName];
+        }
+
+        public void RefreshSearchColumns()
+        {
+            EnsureSearchColumns();
         }
 
         private DataGridViewCell GetActiveSearchCell()
@@ -276,10 +303,11 @@ namespace UE4localizationsTool.Controls
             EnsureSearchColumns();
             if (DataGridView.CurrentCell != null)
             {
-                if (SearchColumn.Items.Contains(DataGridView.CurrentCell.OwningColumn.Name))
+                SearchColumnItem item = FindColumnItem(DataGridView.CurrentCell.OwningColumn.Name);
+                if (item != null)
                 {
-                    SearchColumn.SelectedItem = DataGridView.CurrentCell.OwningColumn.Name;
-                    ColumnName = SearchColumn.SelectedItem.ToString();
+                    SearchColumn.SelectedItem = item;
+                    ColumnName = item.ColumnName;
                 }
 
                 InputSearch.Text = DataGridView.CurrentCell.Value?.ToString() ?? "";
@@ -435,9 +463,39 @@ namespace UE4localizationsTool.Controls
 
         private void SearchColumn_SelectedIndexChanged(object sender, EventArgs e)
         {
-            ColumnName = SearchColumn.SelectedItem?.ToString() ?? ColumnName;
+            ColumnName = GetSelectedColumnName();
             listView1.Visible = false;
             label2.Text = string.Empty;
+        }
+
+        private string GetSelectedColumnName()
+        {
+            SearchColumnItem item = SearchColumn.SelectedItem as SearchColumnItem;
+            return item != null ? item.ColumnName : ColumnName;
+        }
+
+        private SearchColumnItem FindColumnItem(string columnName)
+        {
+            foreach (object item in SearchColumn.Items)
+            {
+                SearchColumnItem columnItem = item as SearchColumnItem;
+                if (columnItem != null && string.Equals(columnItem.ColumnName, columnName, StringComparison.Ordinal))
+                {
+                    return columnItem;
+                }
+            }
+
+            return null;
+        }
+
+        private string GetColumnDisplayName(DataGridViewColumn column)
+        {
+            if (column == null)
+            {
+                return "";
+            }
+
+            return string.IsNullOrWhiteSpace(column.HeaderText) ? column.Name : column.HeaderText;
         }
     }
 }
