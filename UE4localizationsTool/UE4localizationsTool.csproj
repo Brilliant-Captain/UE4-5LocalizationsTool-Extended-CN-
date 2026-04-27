@@ -141,6 +141,12 @@
     <Compile Include="Forms\FrmDoubaoTranslate.cs">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Include="Forms\FrmTranslationTerminology.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Forms\FrmTranslationRuleSettings.cs">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="Forms\FrmTranslationSettings.cs">
       <SubType>Form</SubType>
     </Compile>
