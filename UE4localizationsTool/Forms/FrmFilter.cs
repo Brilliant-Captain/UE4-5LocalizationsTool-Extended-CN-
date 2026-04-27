@@ -9,6 +9,24 @@ namespace UE4localizationsTool
 {
     public partial class FrmFilter : NForm
     {
+        private sealed class FilterColumnItem
+        {
+            public FilterColumnItem(string columnName, string displayName)
+            {
+                ColumnName = columnName ?? "";
+                DisplayName = displayName ?? "";
+            }
+
+            public string ColumnName { get; }
+
+            public string DisplayName { get; }
+
+            public override string ToString()
+            {
+                return DisplayName;
+            }
+        }
+
         public bool UseMatching;
         public bool RegularExpression;
         public bool ReverseMode;
@@ -35,13 +53,14 @@ namespace UE4localizationsTool
             {
                 if (HeaderText.Visible)
                 {
-                    Columns.Items.Add(HeaderText.Name);
+                    Columns.Items.Add(new FilterColumnItem(HeaderText.Name, GetColumnDisplayName(HeaderText)));
                 }
             }
 
-            if (Columns.Items.Contains("Text value"))
+            FilterColumnItem textValueItem = FindColumnItem("Text value");
+            if (textValueItem != null)
             {
-                Columns.SelectedItem = "Text value";
+                Columns.SelectedItem = textValueItem;
             }
             else if (Columns.Items.Count > 0)
             {
@@ -55,7 +74,7 @@ namespace UE4localizationsTool
         {
             ArrayValues = new List<string>();
 
-            ArrayValues.Add(matchcase.Checked + "|" + regularexpression.Checked + "|" + reversemode.Checked+"|"+Columns.Text);
+            ArrayValues.Add(matchcase.Checked + "|" + regularexpression.Checked + "|" + reversemode.Checked+"|"+GetSelectedColumnName());
             foreach (string val in listBox1.Items)
             {
                 ArrayValues.Add(val);
@@ -66,7 +85,7 @@ namespace UE4localizationsTool
             UseMatching = matchcase.Checked;
             RegularExpression = regularexpression.Checked;
             ReverseMode = reversemode.Checked;
-            ColumnName = Columns.Text;
+            ColumnName = GetSelectedColumnName();
             this.Close();
         }
 
@@ -121,7 +140,13 @@ namespace UE4localizationsTool
                     if (Controls.Length > 2)
                         reversemode.Checked = Convert.ToBoolean(Controls[2]);
                     if (Controls.Length > 3)
-                        Columns.Text = Controls[3];
+                    {
+                        FilterColumnItem columnItem = FindColumnItem(Controls[3]);
+                        if (columnItem != null)
+                        {
+                            Columns.SelectedItem = columnItem;
+                        }
+                    }
                     FV.RemoveAt(0);
                 }
                 listBox1.Items.AddRange(FV.ToArray());
@@ -136,6 +161,41 @@ namespace UE4localizationsTool
         private void regularexpression_CheckedChanged(object sender, EventArgs e)
         {
 
+        }
+
+        private string GetSelectedColumnName()
+        {
+            FilterColumnItem item = Columns.SelectedItem as FilterColumnItem;
+            if (item != null)
+            {
+                return item.ColumnName;
+            }
+
+            return Columns.Text;
+        }
+
+        private FilterColumnItem FindColumnItem(string columnName)
+        {
+            foreach (object item in Columns.Items)
+            {
+                FilterColumnItem columnItem = item as FilterColumnItem;
+                if (columnItem != null && string.Equals(columnItem.ColumnName, columnName, StringComparison.Ordinal))
+                {
+                    return columnItem;
+                }
+            }
+
+            return null;
+        }
+
+        private string GetColumnDisplayName(DataGridViewColumn column)
+        {
+            if (column == null)
+            {
+                return "";
+            }
+
+            return string.IsNullOrWhiteSpace(column.HeaderText) ? column.Name : column.HeaderText;
         }
     }
 }

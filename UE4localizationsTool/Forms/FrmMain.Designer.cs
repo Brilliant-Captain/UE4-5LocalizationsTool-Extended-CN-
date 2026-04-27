@@ -68,6 +68,8 @@ namespace UE4localizationsTool
             this.darkModeToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.Checkforupdates = new System.Windows.Forms.ToolStripMenuItem();
             this.translationSettingsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.translationRuleSettingsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.translationTerminologyToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator4 = new System.Windows.Forms.ToolStripSeparator();
             this.Method2 = new System.Windows.Forms.ToolStripMenuItem();
             this.UseFixedSize = new System.Windows.Forms.ToolStripMenuItem();
@@ -203,6 +205,8 @@ namespace UE4localizationsTool
             this.darkModeToolStripMenuItem,
             this.Checkforupdates,
             this.translationSettingsToolStripMenuItem,
+            this.translationRuleSettingsToolStripMenuItem,
+            this.translationTerminologyToolStripMenuItem,
             this.toolStripSeparator4,
             this.Method2,
             this.UseFixedSize});
@@ -435,6 +439,20 @@ namespace UE4localizationsTool
             this.translationSettingsToolStripMenuItem.Size = new System.Drawing.Size(229, 22);
             this.translationSettingsToolStripMenuItem.Text = "翻译接口设置...";
             this.translationSettingsToolStripMenuItem.Click += new System.EventHandler(this.translationSettingsToolStripMenuItem_Click);
+            // 
+            // translationRuleSettingsToolStripMenuItem
+            // 
+            this.translationRuleSettingsToolStripMenuItem.Name = "translationRuleSettingsToolStripMenuItem";
+            this.translationRuleSettingsToolStripMenuItem.Size = new System.Drawing.Size(229, 22);
+            this.translationRuleSettingsToolStripMenuItem.Text = "翻译规则设置...";
+            this.translationRuleSettingsToolStripMenuItem.Click += new System.EventHandler(this.translationRuleSettingsToolStripMenuItem_Click);
+            // 
+            // translationTerminologyToolStripMenuItem
+            // 
+            this.translationTerminologyToolStripMenuItem.Name = "translationTerminologyToolStripMenuItem";
+            this.translationTerminologyToolStripMenuItem.Size = new System.Drawing.Size(229, 22);
+            this.translationTerminologyToolStripMenuItem.Text = "翻译术语管理...";
+            this.translationTerminologyToolStripMenuItem.Click += new System.EventHandler(this.translationTerminologyToolStripMenuItem_Click);
             // 
             // toolStripSeparator4
             // 
@@ -917,6 +935,8 @@ namespace UE4localizationsTool
         private System.Windows.Forms.DataGridViewTextBoxColumn Index;
         private System.Windows.Forms.ToolStripMenuItem Checkforupdates;
         private System.Windows.Forms.ToolStripMenuItem translationSettingsToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem translationRuleSettingsToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem translationTerminologyToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem csvFileToolStripMenuItem;
         private Controls.SearchBox searchBox;
         private System.Windows.Forms.ToolStripMenuItem clearFilterToolStripMenuItem;

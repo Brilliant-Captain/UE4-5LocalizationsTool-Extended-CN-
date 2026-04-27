@@ -112,7 +112,27 @@ namespace UE4localizationsTool
         private void CreateBackupList()
         {
             Asset.AddItemsToDataGridView(dataGridView1);
+            ConfigureGridColumnHeaders();
             ConfigureLocresPreviewColumn();
+            searchBox.RefreshSearchColumns();
+        }
+
+        private void ConfigureGridColumnHeaders()
+        {
+            SetColumnHeaderText("Name", "名称");
+            SetColumnHeaderText("Text value", "文本值");
+            SetColumnHeaderText("index", "索引");
+            SetColumnHeaderText("Hash Table", "哈希表");
+            SetColumnHeaderText(TranslationPreviewColumnName, TranslationPreviewColumnName);
+        }
+
+        private void SetColumnHeaderText(string columnName, string headerText)
+        {
+            DataGridViewColumn column = dataGridView1.Columns[columnName];
+            if (column != null)
+            {
+                column.HeaderText = headerText;
+            }
         }
 
         private void ConfigureLocresPreviewColumn()
@@ -694,7 +714,7 @@ namespace UE4localizationsTool
             }
 
             DialogResult confirm = MessageBox.Show(
-                (selectedOnly ? "已选中行" : "全部行") + "中检测到 " + targetRows.Count + " 条可应用的机器翻译预览。\n确认将这些预览写入“Text value”并同步更新文本哈希吗？\n\n说明：预览列内容会保留，不会被清空。",
+                (selectedOnly ? "已选中行" : "全部行") + "中检测到 " + targetRows.Count + " 条可应用的机器翻译预览。\n确认将这些预览仅写入“Text value”吗？\n\n说明：本操作不会修改命名空间哈希、键哈希、文本哈希，预览列内容也会保留，不会被清空。",
                 "确认应用预览",
                 MessageBoxButtons.YesNo,
                 MessageBoxIcon.Question);
@@ -715,18 +735,10 @@ namespace UE4localizationsTool
                     dataGridView1.SetValue(row.Cells["Text value"], previewText);
                     changedCount++;
                 }
-
-                var currentHash = row.Cells["Hash Table"].Value as HashTable;
-                var updatedHash = new HashTable(
-                    currentHash?.NameHash ?? 0,
-                    currentHash?.KeyHash ?? 0,
-                    previewText.StrCrc32());
-
-                dataGridView1.SetValue(row.Cells["Hash Table"], updatedHash);
             }
 
             MessageBox.Show(
-                "应用完成。\n已写入文本值：" + changedCount + "\n已同步更新文本哈希：" + targetRows.Count,
+                "应用完成。\n已写入文本值：" + changedCount + "\n哈希未作修改。",
                 "完成",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Information);
@@ -1762,6 +1774,22 @@ namespace UE4localizationsTool
         private void translationSettingsToolStripMenuItem_Click(object sender, EventArgs e)
         {
             using (var dialog = new FrmTranslationSettings())
+            {
+                dialog.ShowDialog(this);
+            }
+        }
+
+        private void translationRuleSettingsToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            using (var dialog = new FrmTranslationRuleSettings())
+            {
+                dialog.ShowDialog(this);
+            }
+        }
+
+        private void translationTerminologyToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            using (var dialog = new FrmTranslationTerminology())
             {
                 dialog.ShowDialog(this);
             }

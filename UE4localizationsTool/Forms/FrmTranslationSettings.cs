@@ -182,7 +182,7 @@ namespace UE4localizationsTool.Forms
 
         private void LoadSettings()
         {
-            TranslationProviderSettings settings = TranslationSettingsStore.Load();
+            TranslationProviderSettings settings = TranslationSettingsStore.LoadProviderSettings();
             defaultProviderComboBox.SelectedItem = settings.SelectedProvider;
             doubaoApiKeyTextBox.Text = settings.DoubaoApiKey ?? "";
             googleApiKeyTextBox.Text = settings.GoogleApiKey ?? "";
@@ -195,17 +195,17 @@ namespace UE4localizationsTool.Forms
 
         private void SaveButton_Click(object sender, EventArgs e)
         {
-            TranslationSettingsStore.Save(new TranslationProviderSettings
-            {
-                SelectedProvider = defaultProviderComboBox.SelectedItem is TranslationProviderType provider ? provider : TranslationProviderType.Doubao,
-                DoubaoApiKey = doubaoApiKeyTextBox.Text.Trim(),
-                GoogleApiKey = googleApiKeyTextBox.Text.Trim(),
-                BaiduAppId = baiduAppIdTextBox.Text.Trim(),
-                BaiduSecretKey = baiduSecretKeyTextBox.Text.Trim(),
-                TencentSecretId = tencentSecretIdTextBox.Text.Trim(),
-                TencentSecretKey = tencentSecretKeyTextBox.Text.Trim(),
-                TencentRegion = string.IsNullOrWhiteSpace(tencentRegionTextBox.Text) ? "ap-beijing" : tencentRegionTextBox.Text.Trim()
-            });
+            TranslationProviderSettings settings = TranslationSettingsStore.LoadProviderSettings();
+            settings.SelectedProvider = defaultProviderComboBox.SelectedItem is TranslationProviderType provider ? provider : TranslationProviderType.Doubao;
+            settings.DoubaoApiKey = doubaoApiKeyTextBox.Text.Trim();
+            settings.GoogleApiKey = googleApiKeyTextBox.Text.Trim();
+            settings.BaiduAppId = baiduAppIdTextBox.Text.Trim();
+            settings.BaiduSecretKey = baiduSecretKeyTextBox.Text.Trim();
+            settings.TencentSecretId = tencentSecretIdTextBox.Text.Trim();
+            settings.TencentSecretKey = tencentSecretKeyTextBox.Text.Trim();
+            settings.TencentRegion = string.IsNullOrWhiteSpace(tencentRegionTextBox.Text) ? "ap-beijing" : tencentRegionTextBox.Text.Trim();
+
+            TranslationSettingsStore.SaveProviderSettings(settings);
 
             DialogResult = DialogResult.OK;
             Close();

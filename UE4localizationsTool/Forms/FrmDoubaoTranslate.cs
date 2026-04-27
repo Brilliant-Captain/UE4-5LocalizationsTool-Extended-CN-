@@ -21,7 +21,7 @@ namespace UE4localizationsTool.Forms
         public FrmDoubaoTranslate(int selectedRowCount)
         {
             SelectedRowCount = selectedRowCount;
-            CurrentSettings = TranslationSettingsStore.Load();
+            CurrentSettings = TranslationSettingsStore.LoadProviderSettings();
 
             Font = new Font("Microsoft Sans Serif", 9F, FontStyle.Regular, GraphicsUnit.Point, ((byte)(134)));
             FormBorderStyle = FormBorderStyle.FixedDialog;
@@ -30,7 +30,8 @@ namespace UE4localizationsTool.Forms
             MinimizeBox = false;
             ShowInTaskbar = false;
             Text = "翻译预览";
-            ClientSize = new Size(520, 305);
+            ClientSize = new Size(600, 410);
+            MinimumSize = new Size(600, 410);
 
             var rootPanel = new TableLayoutPanel
             {
@@ -41,6 +42,14 @@ namespace UE4localizationsTool.Forms
             };
             rootPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110F));
             rootPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+            rootPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            rootPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            rootPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            rootPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            rootPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            rootPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            rootPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            rootPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
             Controls.Add(rootPanel);
 
             rootPanel.Controls.Add(new Label
@@ -160,7 +169,7 @@ namespace UE4localizationsTool.Forms
                 AutoSize = true,
                 FlowDirection = FlowDirection.TopDown,
                 WrapContents = false,
-                Margin = new Padding(0, 3, 0, 3)
+                Margin = new Padding(0, 3, 0, 8)
             };
 
             preserveFormattingCheckBox = new CheckBox
@@ -170,6 +179,24 @@ namespace UE4localizationsTool.Forms
                 Text = "保留常见占位符、标签和首尾空白"
             };
             optionsPanel.Controls.Add(preserveFormattingCheckBox);
+
+            var ruleSettingsButton = new Button
+            {
+                Text = "规则设置...",
+                AutoSize = true,
+                Margin = new Padding(20, 0, 0, 6)
+            };
+            ruleSettingsButton.Click += RuleSettingsButton_Click;
+            optionsPanel.Controls.Add(ruleSettingsButton);
+
+            var terminologyButton = new Button
+            {
+                Text = "术语管理...",
+                AutoSize = true,
+                Margin = new Padding(20, 0, 0, 6)
+            };
+            terminologyButton.Click += TerminologyButton_Click;
+            optionsPanel.Controls.Add(terminologyButton);
 
             skipPreviewedRowsCheckBox = new CheckBox
             {
@@ -183,7 +210,8 @@ namespace UE4localizationsTool.Forms
             {
                 AutoSize = true,
                 ForeColor = Color.DimGray,
-                Text = "当前已选中 0 行"
+                Text = "当前已选中 0 行",
+                Margin = new Padding(0, 0, 0, 6)
             };
             optionsPanel.Controls.Add(selectedRowsInfoLabel);
 
@@ -191,9 +219,11 @@ namespace UE4localizationsTool.Forms
 
             var buttonsPanel = new FlowLayoutPanel
             {
-                Dock = DockStyle.Fill,
+                AutoSize = true,
                 FlowDirection = FlowDirection.RightToLeft,
-                WrapContents = false
+                WrapContents = false,
+                Anchor = AnchorStyles.Right,
+                Margin = new Padding(0, 8, 0, 0)
             };
 
             var okButton = new Button
@@ -291,9 +321,25 @@ namespace UE4localizationsTool.Forms
             {
                 if (settingsForm.ShowDialog(this) == DialogResult.OK)
                 {
-                    CurrentSettings = TranslationSettingsStore.Load();
+                    CurrentSettings = TranslationSettingsStore.LoadProviderSettings();
                     providerComboBox.SelectedItem = CurrentSettings.SelectedProvider;
                 }
+            }
+        }
+
+        private void RuleSettingsButton_Click(object sender, EventArgs e)
+        {
+            using (var settingsForm = new FrmTranslationRuleSettings())
+            {
+                settingsForm.ShowDialog(this);
+            }
+        }
+
+        private void TerminologyButton_Click(object sender, EventArgs e)
+        {
+            using (var settingsForm = new FrmTranslationTerminology())
+            {
+                settingsForm.ShowDialog(this);
             }
         }
 
@@ -307,7 +353,7 @@ namespace UE4localizationsTool.Forms
         private void OkButton_Click(object sender, EventArgs e)
         {
             CurrentSettings.SelectedProvider = SelectedProvider;
-            TranslationSettingsStore.Save(CurrentSettings);
+            TranslationSettingsStore.SaveProviderSettings(CurrentSettings);
 
             string credentialError = TranslationProviderFactory.ValidateCredentials(CurrentSettings, SelectedProvider);
             if (!string.IsNullOrWhiteSpace(credentialError))
