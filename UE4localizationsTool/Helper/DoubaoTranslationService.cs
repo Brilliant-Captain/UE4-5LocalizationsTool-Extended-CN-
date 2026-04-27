@@ -41,6 +41,8 @@ namespace UE4localizationsTool.Helper
         public const string ModelName = "doubao-seed-translation-250915";
 
         private readonly string apiKey;
+        private readonly TranslationFormattingRules formattingRules;
+        private readonly System.Collections.Generic.List<TranslationTerminologyEntry> terminologyEntries;
 
         public DoubaoTranslationService(string apiKey)
         {
@@ -50,6 +52,9 @@ namespace UE4localizationsTool.Helper
             }
 
             this.apiKey = apiKey.Trim();
+            TranslationProviderSettings settings = TranslationSettingsStore.Load();
+            formattingRules = (settings.FormattingRules ?? new TranslationFormattingRules()).Normalize();
+            terminologyEntries = settings.TerminologyEntries ?? new System.Collections.Generic.List<TranslationTerminologyEntry>();
         }
 
         public TranslationProviderType ProviderType => TranslationProviderType.Doubao;
@@ -104,6 +109,8 @@ namespace UE4localizationsTool.Helper
                 string.IsNullOrWhiteSpace(sourceLanguage) ? null : sourceLanguage.Trim(),
                 targetLanguage.Trim(),
                 preserveFormatting,
+                formattingRules,
+                terminologyEntries,
                 SendRequestAsync);
         }
 

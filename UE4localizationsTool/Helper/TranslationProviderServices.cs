@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
@@ -8,6 +9,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Csv;
 
 namespace UE4localizationsTool.Helper
 {
@@ -17,6 +19,96 @@ namespace UE4localizationsTool.Helper
         Google,
         Baidu,
         Tencent
+    }
+
+    public enum TerminologyPartOfSpeech
+    {
+        Noun,
+        Verb,
+        Adjective,
+        Adverb
+    }
+
+    [DataContract]
+    public sealed class TranslationTerminologyEntry
+    {
+        public TranslationTerminologyEntry()
+        {
+            PartOfSpeech = TerminologyPartOfSpeech.Noun;
+            SourceText = "";
+            TargetText = "";
+            Variants = new List<string>();
+            Notes = "";
+        }
+
+        [DataMember]
+        public TerminologyPartOfSpeech PartOfSpeech { get; set; }
+
+        [DataMember]
+        public string SourceText { get; set; }
+
+        [DataMember]
+        public string TargetText { get; set; }
+
+        [DataMember]
+        public List<string> Variants { get; set; }
+
+        [DataMember]
+        public string Notes { get; set; }
+
+        [DataMember]
+        public bool CaseSensitive { get; set; }
+
+        public TranslationTerminologyEntry Normalize()
+        {
+            SourceText = SourceText ?? "";
+            TargetText = TargetText ?? "";
+            Notes = Notes ?? "";
+            Variants = Variants ?? new List<string>();
+            return this;
+        }
+    }
+
+    [DataContract]
+    public sealed class TranslationFormattingRules
+    {
+        public TranslationFormattingRules()
+        {
+            PreserveEscapeSequences = true;
+            PreservePlaceholders = true;
+            PreserveAngleBracketTags = true;
+            PreserveSquareBracketTags = true;
+            PreserveLeadingAndTrailingWhitespace = true;
+            CustomProtectedPatterns = new List<string>();
+        }
+
+        [DataMember]
+        public bool PreserveEscapeSequences { get; set; }
+
+        [DataMember]
+        public bool PreservePlaceholders { get; set; }
+
+        [DataMember]
+        public bool PreserveAngleBracketTags { get; set; }
+
+        [DataMember]
+        public bool PreserveSquareBracketTags { get; set; }
+
+        [DataMember]
+        public bool PreserveLeadingAndTrailingWhitespace { get; set; }
+
+        [DataMember]
+        public List<string> CustomProtectedPatterns { get; set; }
+
+        public TranslationFormattingRules Normalize()
+        {
+            if (CustomProtectedPatterns == null)
+            {
+                CustomProtectedPatterns = new List<string>();
+            }
+
+            return this;
+        }
     }
 
     [DataContract]
@@ -45,6 +137,88 @@ namespace UE4localizationsTool.Helper
 
         [DataMember]
         public string TencentRegion { get; set; } = "ap-beijing";
+
+        [DataMember]
+        public TranslationFormattingRules FormattingRules { get; set; } = new TranslationFormattingRules();
+
+        [DataMember]
+        public List<TranslationTerminologyEntry> TerminologyEntries { get; set; } = new List<TranslationTerminologyEntry>();
+
+        public TranslationProviderSettings Normalize()
+        {
+            if (string.IsNullOrWhiteSpace(TencentRegion))
+            {
+                TencentRegion = "ap-beijing";
+            }
+
+            if (FormattingRules == null)
+            {
+                FormattingRules = new TranslationFormattingRules();
+            }
+            else
+            {
+                FormattingRules.Normalize();
+            }
+
+            if (TerminologyEntries == null)
+            {
+                TerminologyEntries = new List<TranslationTerminologyEntry>();
+            }
+            else
+            {
+                for (int i = 0; i < TerminologyEntries.Count; i++)
+                {
+                    TerminologyEntries[i] = (TerminologyEntries[i] ?? new TranslationTerminologyEntry()).Normalize();
+                }
+            }
+
+            return this;
+        }
+    }
+
+    [DataContract]
+    public sealed class TranslationApiSettings
+    {
+        [DataMember]
+        public TranslationProviderType SelectedProvider { get; set; } = TranslationProviderType.Doubao;
+
+        [DataMember]
+        public string DoubaoApiKey { get; set; } = "";
+
+        [DataMember]
+        public string GoogleApiKey { get; set; } = "";
+
+        [DataMember]
+        public string BaiduAppId { get; set; } = "";
+
+        [DataMember]
+        public string BaiduSecretKey { get; set; } = "";
+
+        [DataMember]
+        public string TencentSecretId { get; set; } = "";
+
+        [DataMember]
+        public string TencentSecretKey { get; set; } = "";
+
+        [DataMember]
+        public string TencentRegion { get; set; } = "ap-beijing";
+
+        public TranslationApiSettings Normalize()
+        {
+            DoubaoApiKey = DoubaoApiKey ?? "";
+            GoogleApiKey = GoogleApiKey ?? "";
+            BaiduAppId = BaiduAppId ?? "";
+            BaiduSecretKey = BaiduSecretKey ?? "";
+            TencentSecretId = TencentSecretId ?? "";
+            TencentSecretKey = TencentSecretKey ?? "";
+
+            if (string.IsNullOrWhiteSpace(TencentRegion))
+            {
+                TencentRegion = "ap-beijing";
+            }
+
+            return this;
+        }
     }
 
     public interface ITranslationProvider
@@ -70,6 +244,21 @@ namespace UE4localizationsTool.Helper
                     return "豆包";
             }
         }
+
+        public static string GetPartOfSpeechDisplayName(TerminologyPartOfSpeech partOfSpeech)
+        {
+            switch (partOfSpeech)
+            {
+                case TerminologyPartOfSpeech.Verb:
+                    return "动词";
+                case TerminologyPartOfSpeech.Adjective:
+                    return "形容词";
+                case TerminologyPartOfSpeech.Adverb:
+                    return "副词";
+                default:
+                    return "名词";
+            }
+        }
     }
 
     public static class TranslationSettingsStore
@@ -78,36 +267,360 @@ namespace UE4localizationsTool.Helper
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
             "UE4本地化工具");
 
-        private static readonly string SettingsPath = Path.Combine(SettingsDirectory, "translation-settings.json");
+        private static readonly string LegacySettingsPath = Path.Combine(SettingsDirectory, "translation-settings.json");
+        private static readonly string ProviderSettingsPath = Path.Combine(SettingsDirectory, "translation-provider-settings.json");
+        private static readonly string RuleSettingsPath = Path.Combine(SettingsDirectory, "translation-rule-settings.json");
+        private static readonly string TerminologySettingsPath = Path.Combine(SettingsDirectory, "translation-terminology-settings.json");
 
         public static TranslationProviderSettings Load()
         {
+            TranslationProviderSettings settings = LoadProviderSettings();
+            settings.FormattingRules = LoadFormattingRules();
+            settings.TerminologyEntries = LoadTerminologyEntries();
+            return settings.Normalize();
+        }
+
+        public static TranslationProviderSettings LoadProviderSettings()
+        {
             try
             {
-                if (!File.Exists(SettingsPath))
+                TranslationApiSettings apiSettings = ReadJsonFile<TranslationApiSettings>(ProviderSettingsPath);
+                if (apiSettings == null)
                 {
-                    return new TranslationProviderSettings();
+                    TranslationProviderSettings legacySettings = LoadLegacySettings();
+                    return new TranslationProviderSettings
+                    {
+                        SelectedProvider = legacySettings.SelectedProvider,
+                        DoubaoApiKey = legacySettings.DoubaoApiKey,
+                        GoogleApiKey = legacySettings.GoogleApiKey,
+                        BaiduAppId = legacySettings.BaiduAppId,
+                        BaiduSecretKey = legacySettings.BaiduSecretKey,
+                        TencentSecretId = legacySettings.TencentSecretId,
+                        TencentSecretKey = legacySettings.TencentSecretKey,
+                        TencentRegion = legacySettings.TencentRegion
+                    }.Normalize();
                 }
 
-                using (var stream = File.OpenRead(SettingsPath))
+                apiSettings = apiSettings.Normalize();
+                return new TranslationProviderSettings
                 {
-                    var serializer = new DataContractJsonSerializer(typeof(TranslationProviderSettings));
-                    return (TranslationProviderSettings)serializer.ReadObject(stream);
-                }
+                    SelectedProvider = apiSettings.SelectedProvider,
+                    DoubaoApiKey = apiSettings.DoubaoApiKey,
+                    GoogleApiKey = apiSettings.GoogleApiKey,
+                    BaiduAppId = apiSettings.BaiduAppId,
+                    BaiduSecretKey = apiSettings.BaiduSecretKey,
+                    TencentSecretId = apiSettings.TencentSecretId,
+                    TencentSecretKey = apiSettings.TencentSecretKey,
+                    TencentRegion = apiSettings.TencentRegion
+                }.Normalize();
             }
             catch
             {
-                return new TranslationProviderSettings();
+                return new TranslationProviderSettings().Normalize();
             }
+        }
+
+        public static void SaveProviderSettings(TranslationProviderSettings settings)
+        {
+            Directory.CreateDirectory(SettingsDirectory);
+            TranslationProviderSettings normalized = (settings ?? new TranslationProviderSettings()).Normalize();
+            WriteJsonFile(ProviderSettingsPath, new TranslationApiSettings
+            {
+                SelectedProvider = normalized.SelectedProvider,
+                DoubaoApiKey = normalized.DoubaoApiKey,
+                GoogleApiKey = normalized.GoogleApiKey,
+                BaiduAppId = normalized.BaiduAppId,
+                BaiduSecretKey = normalized.BaiduSecretKey,
+                TencentSecretId = normalized.TencentSecretId,
+                TencentSecretKey = normalized.TencentSecretKey,
+                TencentRegion = normalized.TencentRegion
+            }.Normalize());
+        }
+
+        public static TranslationFormattingRules LoadFormattingRules()
+        {
+            try
+            {
+                TranslationFormattingRules rules = ReadJsonFile<TranslationFormattingRules>(RuleSettingsPath);
+                if (rules != null)
+                {
+                    return rules.Normalize();
+                }
+
+                return (LoadLegacySettings().FormattingRules ?? new TranslationFormattingRules()).Normalize();
+            }
+            catch
+            {
+                return new TranslationFormattingRules().Normalize();
+            }
+        }
+
+        public static void SaveFormattingRules(TranslationFormattingRules rules)
+        {
+            Directory.CreateDirectory(SettingsDirectory);
+            WriteJsonFile(RuleSettingsPath, (rules ?? new TranslationFormattingRules()).Normalize());
+        }
+
+        public static List<TranslationTerminologyEntry> LoadTerminologyEntries()
+        {
+            try
+            {
+                List<TranslationTerminologyEntry> entries = ReadJsonFile<List<TranslationTerminologyEntry>>(TerminologySettingsPath);
+                if (entries == null)
+                {
+                    entries = LoadLegacySettings().TerminologyEntries ?? new List<TranslationTerminologyEntry>();
+                }
+
+                for (int i = 0; i < entries.Count; i++)
+                {
+                    entries[i] = (entries[i] ?? new TranslationTerminologyEntry()).Normalize();
+                }
+
+                return entries;
+            }
+            catch
+            {
+                return new List<TranslationTerminologyEntry>();
+            }
+        }
+
+        public static void SaveTerminologyEntries(IEnumerable<TranslationTerminologyEntry> entries)
+        {
+            Directory.CreateDirectory(SettingsDirectory);
+            WriteJsonFile(
+                TerminologySettingsPath,
+                (entries ?? new List<TranslationTerminologyEntry>())
+                    .Select(entry => (entry ?? new TranslationTerminologyEntry()).Normalize())
+                    .ToList());
         }
 
         public static void Save(TranslationProviderSettings settings)
         {
-            Directory.CreateDirectory(SettingsDirectory);
-            using (var stream = File.Create(SettingsPath))
+            TranslationProviderSettings normalized = (settings ?? new TranslationProviderSettings()).Normalize();
+            SaveProviderSettings(normalized);
+            SaveFormattingRules(normalized.FormattingRules);
+            SaveTerminologyEntries(normalized.TerminologyEntries);
+        }
+
+        public static void SaveTerminologyEntriesToFile(string filePath, IEnumerable<TranslationTerminologyEntry> entries)
+        {
+            string path = filePath ?? "";
+            if (string.IsNullOrWhiteSpace(path))
             {
-                var serializer = new DataContractJsonSerializer(typeof(TranslationProviderSettings));
-                serializer.WriteObject(stream, settings ?? new TranslationProviderSettings());
+                throw new ArgumentException("未指定术语文件路径。", nameof(filePath));
+            }
+
+            string directory = Path.GetDirectoryName(path);
+            if (!string.IsNullOrWhiteSpace(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+
+            if (string.Equals(Path.GetExtension(path), ".csv", StringComparison.OrdinalIgnoreCase))
+            {
+                SaveTerminologyEntriesToCsv(path, entries);
+                return;
+            }
+
+            var serializer = new DataContractJsonSerializer(typeof(List<TranslationTerminologyEntry>));
+            using (var stream = File.Create(path))
+            {
+                serializer.WriteObject(
+                    stream,
+                    (entries ?? new List<TranslationTerminologyEntry>())
+                        .Select(entry => (entry ?? new TranslationTerminologyEntry()).Normalize())
+                        .ToList());
+            }
+        }
+
+        public static List<TranslationTerminologyEntry> LoadTerminologyEntriesFromFile(string filePath)
+        {
+            string path = filePath ?? "";
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                throw new ArgumentException("未指定术语文件路径。", nameof(filePath));
+            }
+
+            if (string.Equals(Path.GetExtension(path), ".csv", StringComparison.OrdinalIgnoreCase))
+            {
+                return LoadTerminologyEntriesFromCsv(path);
+            }
+
+            using (var stream = File.OpenRead(path))
+            {
+                var serializer = new DataContractJsonSerializer(typeof(List<TranslationTerminologyEntry>));
+                var entries = (serializer.ReadObject(stream) as List<TranslationTerminologyEntry>) ?? new List<TranslationTerminologyEntry>();
+                for (int i = 0; i < entries.Count; i++)
+                {
+                    entries[i] = (entries[i] ?? new TranslationTerminologyEntry()).Normalize();
+                }
+
+                return entries;
+            }
+        }
+
+        private static void SaveTerminologyEntriesToCsv(string filePath, IEnumerable<TranslationTerminologyEntry> entries)
+        {
+            List<TranslationTerminologyEntry> normalizedEntries = (entries ?? new List<TranslationTerminologyEntry>())
+                .Select(entry => (entry ?? new TranslationTerminologyEntry()).Normalize())
+                .ToList();
+
+            using (var writer = new StreamWriter(filePath, false, new UTF8Encoding(true)))
+            {
+                IEnumerable<string[]> rows = normalizedEntries.Select(entry => new[]
+                {
+                    TranslationProviderHelper.GetPartOfSpeechDisplayName(entry.PartOfSpeech),
+                    entry.SourceText ?? "",
+                    entry.TargetText ?? "",
+                    string.Join(" | ", (entry.Variants ?? new List<string>())
+                        .Where(value => !string.IsNullOrWhiteSpace(value))
+                        .Select(value => value.Trim())),
+                    entry.Notes ?? "",
+                    entry.CaseSensitive ? "是" : "否"
+                });
+
+                CsvWriter.Write(writer,
+                    new[] { "词性", "术语原文", "术语译文", "术语变体", "额外说明", "大小写敏感" },
+                    rows);
+            }
+        }
+
+        private static List<TranslationTerminologyEntry> LoadTerminologyEntriesFromCsv(string filePath)
+        {
+            var entries = new List<TranslationTerminologyEntry>();
+
+            using (var textReader = new StreamReader(filePath))
+            {
+                var options = new CsvOptions { AllowNewLineInEnclosedFieldValues = true };
+                int rowIndex = -1;
+                foreach (var line in CsvReader.Read(textReader, options))
+                {
+                    rowIndex++;
+                    if (line == null || line.ColumnCount == 0)
+                    {
+                        continue;
+                    }
+
+                    if (rowIndex == 0 && IsTerminologyCsvHeader(line.Values))
+                    {
+                        continue;
+                    }
+
+                    var entry = new TranslationTerminologyEntry
+                    {
+                        PartOfSpeech = ParseTerminologyPartOfSpeech(GetCsvValue(line.Values, 0)),
+                        SourceText = GetCsvValue(line.Values, 1).Trim(),
+                        TargetText = GetCsvValue(line.Values, 2).Trim(),
+                        Variants = SplitTerminologyVariants(GetCsvValue(line.Values, 3)),
+                        Notes = GetCsvValue(line.Values, 4).Trim(),
+                        CaseSensitive = ParseTerminologyBoolean(GetCsvValue(line.Values, 5))
+                    }.Normalize();
+
+                    if (string.IsNullOrWhiteSpace(entry.SourceText) &&
+                        string.IsNullOrWhiteSpace(entry.TargetText) &&
+                        entry.Variants.Count == 0 &&
+                        string.IsNullOrWhiteSpace(entry.Notes))
+                    {
+                        continue;
+                    }
+
+                    entries.Add(entry);
+                }
+            }
+
+            return entries;
+        }
+
+        private static bool IsTerminologyCsvHeader(string[] values)
+        {
+            return string.Equals(GetCsvValue(values, 0), "词性", StringComparison.OrdinalIgnoreCase) &&
+                   string.Equals(GetCsvValue(values, 1), "术语原文", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string GetCsvValue(string[] values, int index)
+        {
+            if (values == null || index < 0 || index >= values.Length)
+            {
+                return "";
+            }
+
+            return values[index] ?? "";
+        }
+
+        private static TerminologyPartOfSpeech ParseTerminologyPartOfSpeech(string value)
+        {
+            string text = (value ?? "").Trim();
+            switch (text.ToLowerInvariant())
+            {
+                case "动词":
+                case "verb":
+                    return TerminologyPartOfSpeech.Verb;
+                case "形容词":
+                case "adjective":
+                    return TerminologyPartOfSpeech.Adjective;
+                case "副词":
+                case "adverb":
+                    return TerminologyPartOfSpeech.Adverb;
+                default:
+                    return TerminologyPartOfSpeech.Noun;
+            }
+        }
+
+        private static List<string> SplitTerminologyVariants(string value)
+        {
+            return (value ?? "")
+                .Replace("\r\n", "\n")
+                .Split(new[] { "\n", "|", ";", "；" }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(item => item.Trim())
+                .Where(item => !string.IsNullOrWhiteSpace(item))
+                .Distinct(StringComparer.Ordinal)
+                .ToList();
+        }
+
+        private static bool ParseTerminologyBoolean(string value)
+        {
+            string text = (value ?? "").Trim();
+            switch (text.ToLowerInvariant())
+            {
+                case "1":
+                case "true":
+                case "yes":
+                case "y":
+                case "是":
+                case "开":
+                case "开启":
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        private static TranslationProviderSettings LoadLegacySettings()
+        {
+            TranslationProviderSettings legacy = ReadJsonFile<TranslationProviderSettings>(LegacySettingsPath);
+            return (legacy ?? new TranslationProviderSettings()).Normalize();
+        }
+
+        private static T ReadJsonFile<T>(string path) where T : class
+        {
+            if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+            {
+                return null;
+            }
+
+            using (var stream = File.OpenRead(path))
+            {
+                var serializer = new DataContractJsonSerializer(typeof(T));
+                return serializer.ReadObject(stream) as T;
+            }
+        }
+
+        private static void WriteJsonFile<T>(string path, T value)
+        {
+            using (var stream = File.Create(path))
+            {
+                var serializer = new DataContractJsonSerializer(typeof(T));
+                serializer.WriteObject(stream, value);
             }
         }
     }
@@ -162,16 +675,18 @@ namespace UE4localizationsTool.Helper
     internal sealed class PreservedTextFormat
     {
         private readonly Dictionary<string, string> placeholders;
+        private readonly bool trimTranslatedText;
 
-        public PreservedTextFormat(string maskedCoreText, string leadingWhitespace, string trailingWhitespace, Dictionary<string, string> placeholders)
+        public PreservedTextFormat(string maskedCoreText, string leadingWhitespace, string trailingWhitespace, Dictionary<string, string> placeholders, bool trimTranslatedText)
         {
             MaskedCoreText = maskedCoreText ?? "";
             LeadingWhitespace = leadingWhitespace ?? "";
             TrailingWhitespace = trailingWhitespace ?? "";
             this.placeholders = placeholders ?? new Dictionary<string, string>();
+            this.trimTranslatedText = trimTranslatedText;
         }
 
-        public string MaskedCoreText { get; }
+        public string MaskedCoreText { get; private set; }
 
         public string LeadingWhitespace { get; }
 
@@ -185,21 +700,38 @@ namespace UE4localizationsTool.Helper
                 restored = restored.Replace(pair.Key, pair.Value);
             }
 
-            return LeadingWhitespace + restored.Trim() + TrailingWhitespace;
+            return trimTranslatedText
+                ? LeadingWhitespace + restored.Trim() + TrailingWhitespace
+                : restored;
+        }
+
+        public void SetMaskedCoreText(string maskedCoreText)
+        {
+            MaskedCoreText = maskedCoreText ?? "";
+        }
+
+        public void RegisterPlaceholder(string placeholder, string value)
+        {
+            placeholders[placeholder ?? ""] = value ?? "";
         }
     }
 
     internal static class TranslationTextFormatter
     {
-        private static readonly Regex PlaceholderRegex = new Regex(
-            @"(\\r\\n|\\n|\\r|\\t|%\d*\$?[-+# 0,(]*\d*(?:\.\d+)?[a-zA-Z]|%\w|\{[^{}\r\n]+\}|\$\{[^{}\r\n]+\}|<[^<>\r\n]+>)",
-            RegexOptions.Compiled);
+        private const string EscapeSequencePattern = @"\\r\\n|\\n|\\r|\\t";
+        private const string PlaceholderPattern = @"%\d*\$?[-+# 0,(]*\d*(?:\.\d+)?[a-zA-Z]|%\w|\{[^{}\r\n]+\}|\$\{[^{}\r\n]+\}";
+        private const string AngleBracketTagPattern = @"<[^<>\r\n]+>";
+        private const string SquareBracketTagPattern = @"\[[^\[\]\r\n]+\]";
+        private static readonly Regex InternalPlaceholderRegex = new Regex(@"__BXS_(?:TOKEN|TERM)_\d+__", RegexOptions.Compiled);
+        private static readonly Regex NonContentRegex = new Regex(@"[\s\p{P}\p{S}]+", RegexOptions.Compiled);
 
         public static async Task<string> TranslateAsync(
             string sourceText,
             string sourceLanguage,
             string targetLanguage,
             bool preserveFormatting,
+            TranslationFormattingRules formattingRules,
+            IReadOnlyList<TranslationTerminologyEntry> terminologyEntries,
             Func<string, string, string, Task<string>> translateCoreAsync)
         {
             if (string.IsNullOrEmpty(sourceText))
@@ -207,37 +739,63 @@ namespace UE4localizationsTool.Helper
                 return "";
             }
 
-            if (!preserveFormatting)
-            {
-                return await translateCoreAsync(sourceText, sourceLanguage, targetLanguage);
-            }
+            var effectiveFormattingRules = preserveFormatting
+                ? (formattingRules ?? new TranslationFormattingRules())
+                : CreateDisabledFormattingRules();
 
-            var preserved = PreserveFormatting(sourceText);
+            var preserved = PreserveFormatting(sourceText, effectiveFormattingRules);
+            ApplyTerminologyRules(preserved, terminologyEntries);
             if (string.IsNullOrEmpty(preserved.MaskedCoreText))
             {
                 return sourceText;
             }
 
+            if (!ContainsTranslatableContent(preserved.MaskedCoreText))
+            {
+                return preserved.Restore(preserved.MaskedCoreText);
+            }
+
             string translated = await translateCoreAsync(preserved.MaskedCoreText, sourceLanguage, targetLanguage);
-            return preserved.Restore(translated);
+            return CleanupSuspiciousInstructionalResponse(preserved.Restore(translated));
         }
 
-        private static PreservedTextFormat PreserveFormatting(string text)
+        private static TranslationFormattingRules CreateDisabledFormattingRules()
         {
-            string leadingWhitespace = Regex.Match(text ?? "", @"^\s+").Value;
-            string trailingWhitespace = Regex.Match(text ?? "", @"\s+$").Value;
+            return new TranslationFormattingRules
+            {
+                PreserveEscapeSequences = false,
+                PreservePlaceholders = false,
+                PreserveAngleBracketTags = false,
+                PreserveSquareBracketTags = false,
+                PreserveLeadingAndTrailingWhitespace = false,
+                CustomProtectedPatterns = new List<string>()
+            };
+        }
+
+        private static PreservedTextFormat PreserveFormatting(string text, TranslationFormattingRules formattingRules)
+        {
+            string sourceText = text ?? "";
+            bool preserveWhitespace = formattingRules?.PreserveLeadingAndTrailingWhitespace ?? true;
+            string leadingWhitespace = preserveWhitespace ? Regex.Match(sourceText, @"^\s+").Value : "";
+            string trailingWhitespace = preserveWhitespace ? Regex.Match(sourceText, @"\s+$").Value : "";
             int coreStartIndex = leadingWhitespace.Length;
-            int coreLength = Math.Max(0, (text ?? "").Length - leadingWhitespace.Length - trailingWhitespace.Length);
-            string coreText = (text ?? "").Substring(coreStartIndex, coreLength);
+            int coreLength = Math.Max(0, sourceText.Length - leadingWhitespace.Length - trailingWhitespace.Length);
+            string coreText = preserveWhitespace ? sourceText.Substring(coreStartIndex, coreLength) : sourceText;
 
             if (string.IsNullOrEmpty(coreText))
             {
-                return new PreservedTextFormat("", leadingWhitespace, trailingWhitespace, new Dictionary<string, string>());
+                return new PreservedTextFormat("", leadingWhitespace, trailingWhitespace, new Dictionary<string, string>(), preserveWhitespace);
+            }
+
+            Regex placeholderRegex = BuildProtectedContentRegex(formattingRules ?? new TranslationFormattingRules());
+            if (placeholderRegex == null)
+            {
+                return new PreservedTextFormat(coreText, leadingWhitespace, trailingWhitespace, new Dictionary<string, string>(), preserveWhitespace);
             }
 
             int placeholderIndex = 0;
             var placeholders = new Dictionary<string, string>(StringComparer.Ordinal);
-            string maskedText = PlaceholderRegex.Replace(
+            string maskedText = placeholderRegex.Replace(
                 coreText,
                 match =>
                 {
@@ -246,13 +804,199 @@ namespace UE4localizationsTool.Helper
                     return placeholder;
                 });
 
-            return new PreservedTextFormat(maskedText, leadingWhitespace, trailingWhitespace, placeholders);
+            return new PreservedTextFormat(maskedText, leadingWhitespace, trailingWhitespace, placeholders, preserveWhitespace);
+        }
+
+        private static void ApplyTerminologyRules(PreservedTextFormat preserved, IReadOnlyList<TranslationTerminologyEntry> terminologyEntries)
+        {
+            if (preserved == null || terminologyEntries == null || terminologyEntries.Count == 0)
+            {
+                return;
+            }
+
+            string currentText = preserved.MaskedCoreText;
+            int termIndex = 0;
+
+            foreach (var candidate in BuildTerminologyCandidates(terminologyEntries))
+            {
+                Regex regex = BuildTerminologyRegex(candidate.SourceText, candidate.CaseSensitive);
+                currentText = regex.Replace(
+                    currentText,
+                    match =>
+                    {
+                        string placeholder = string.Format("__BXS_TERM_{0}__", termIndex++);
+                        preserved.RegisterPlaceholder(placeholder, candidate.TargetText);
+                        return placeholder;
+                    });
+            }
+
+            preserved.SetMaskedCoreText(currentText);
+        }
+
+        private static IEnumerable<TerminologyCandidate> BuildTerminologyCandidates(IReadOnlyList<TranslationTerminologyEntry> terminologyEntries)
+        {
+            var candidates = new List<TerminologyCandidate>();
+
+            foreach (TranslationTerminologyEntry entry in terminologyEntries)
+            {
+                TranslationTerminologyEntry normalizedEntry = (entry ?? new TranslationTerminologyEntry()).Normalize();
+                if (string.IsNullOrWhiteSpace(normalizedEntry.SourceText) || string.IsNullOrWhiteSpace(normalizedEntry.TargetText))
+                {
+                    continue;
+                }
+
+                AddTerminologyCandidate(candidates, normalizedEntry.SourceText, normalizedEntry.TargetText, normalizedEntry.CaseSensitive);
+                foreach (string variant in normalizedEntry.Variants ?? new List<string>())
+                {
+                    AddTerminologyCandidate(candidates, variant, normalizedEntry.TargetText, normalizedEntry.CaseSensitive);
+                }
+            }
+
+            candidates.Sort((left, right) => right.SourceText.Length.CompareTo(left.SourceText.Length));
+            return candidates;
+        }
+
+        private static void AddTerminologyCandidate(List<TerminologyCandidate> candidates, string sourceText, string targetText, bool caseSensitive)
+        {
+            string normalizedSource = (sourceText ?? "").Trim();
+            if (string.IsNullOrWhiteSpace(normalizedSource))
+            {
+                return;
+            }
+
+            if (candidates.Exists(candidate =>
+                string.Equals(candidate.SourceText, normalizedSource, caseSensitive ? StringComparison.Ordinal : StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(candidate.TargetText, targetText ?? "", StringComparison.Ordinal) &&
+                candidate.CaseSensitive == caseSensitive))
+            {
+                return;
+            }
+
+            candidates.Add(new TerminologyCandidate
+            {
+                SourceText = normalizedSource,
+                TargetText = targetText ?? "",
+                CaseSensitive = caseSensitive
+            });
+        }
+
+        private static Regex BuildTerminologyRegex(string sourceText, bool caseSensitive)
+        {
+            string pattern = @"(?<![\p{L}\p{Nd}_])" + Regex.Escape(sourceText ?? "") + @"(?![\p{L}\p{Nd}_])";
+            RegexOptions options = RegexOptions.Compiled;
+            if (!caseSensitive)
+            {
+                options |= RegexOptions.IgnoreCase;
+            }
+
+            return new Regex(pattern, options);
+        }
+
+        private static Regex BuildProtectedContentRegex(TranslationFormattingRules formattingRules)
+        {
+            var patterns = new List<string>();
+
+            if (formattingRules.PreserveEscapeSequences)
+            {
+                patterns.Add(EscapeSequencePattern);
+            }
+
+            if (formattingRules.PreservePlaceholders)
+            {
+                patterns.Add(PlaceholderPattern);
+            }
+
+            if (formattingRules.PreserveAngleBracketTags)
+            {
+                patterns.Add(AngleBracketTagPattern);
+            }
+
+            if (formattingRules.PreserveSquareBracketTags)
+            {
+                patterns.Add(SquareBracketTagPattern);
+            }
+
+            foreach (string customPattern in formattingRules.CustomProtectedPatterns ?? new List<string>())
+            {
+                string pattern = (customPattern ?? "").Trim();
+                if (!string.IsNullOrWhiteSpace(pattern))
+                {
+                    patterns.Add(pattern);
+                }
+            }
+
+            if (patterns.Count == 0)
+            {
+                return null;
+            }
+
+            return new Regex("(" + string.Join("|", patterns) + ")", RegexOptions.Compiled);
+        }
+
+        private static bool ContainsTranslatableContent(string text)
+        {
+            string normalized = InternalPlaceholderRegex.Replace(text ?? "", "");
+            normalized = NonContentRegex.Replace(normalized, "");
+            return !string.IsNullOrWhiteSpace(normalized);
+        }
+
+        private static string CleanupSuspiciousInstructionalResponse(string translatedText)
+        {
+            string text = (translatedText ?? "").Trim();
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return translatedText ?? "";
+            }
+
+            if (!LooksLikeInstructionalWrapper(text))
+            {
+                return translatedText ?? "";
+            }
+
+            string[] lines = text.Split(new[] { "\r\n", "\n" }, StringSplitOptions.None);
+            for (int i = lines.Length - 1; i >= 0; i--)
+            {
+                string line = (lines[i] ?? "").Trim();
+                if (!string.IsNullOrWhiteSpace(line) && !LooksLikeInstructionalWrapper(line))
+                {
+                    return line;
+                }
+            }
+
+            return translatedText ?? "";
+        }
+
+        private static bool LooksLikeInstructionalWrapper(string text)
+        {
+            string value = (text ?? "").Trim();
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return false;
+            }
+
+            return
+                (value.Contains("请将以下文本翻译成") && value.Contains("翻译过程")) ||
+                value.StartsWith("请翻译以下文本", StringComparison.Ordinal) ||
+                value.StartsWith("请将以下文本翻译", StringComparison.Ordinal) ||
+                value.StartsWith("Translate the following text", StringComparison.OrdinalIgnoreCase) ||
+                value.StartsWith("Please translate the following text", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private sealed class TerminologyCandidate
+        {
+            public string SourceText { get; set; }
+
+            public string TargetText { get; set; }
+
+            public bool CaseSensitive { get; set; }
         }
     }
 
     internal sealed class GoogleTranslationService : ITranslationProvider
     {
         private readonly string apiKey;
+        private readonly TranslationFormattingRules formattingRules;
+        private readonly List<TranslationTerminologyEntry> terminologyEntries;
 
         public GoogleTranslationService(string apiKey)
         {
@@ -262,6 +1006,9 @@ namespace UE4localizationsTool.Helper
             }
 
             this.apiKey = apiKey.Trim();
+            TranslationProviderSettings settings = TranslationSettingsStore.Load();
+            formattingRules = (settings.FormattingRules ?? new TranslationFormattingRules()).Normalize();
+            terminologyEntries = settings.TerminologyEntries ?? new List<TranslationTerminologyEntry>();
         }
 
         public TranslationProviderType ProviderType => TranslationProviderType.Google;
@@ -273,7 +1020,7 @@ namespace UE4localizationsTool.Helper
                 throw new InvalidOperationException("目标语言不能为空。");
             }
 
-            return TranslationTextFormatter.TranslateAsync(sourceText, sourceLanguage, targetLanguage, preserveFormatting, TranslateCoreAsync);
+            return TranslationTextFormatter.TranslateAsync(sourceText, sourceLanguage, targetLanguage, preserveFormatting, formattingRules, terminologyEntries, TranslateCoreAsync);
         }
 
         private async Task<string> TranslateCoreAsync(string sourceText, string sourceLanguage, string targetLanguage)
@@ -308,6 +1055,8 @@ namespace UE4localizationsTool.Helper
     {
         private readonly string appId;
         private readonly string secretKey;
+        private readonly TranslationFormattingRules formattingRules;
+        private readonly List<TranslationTerminologyEntry> terminologyEntries;
 
         public BaiduTranslationService(string appId, string secretKey)
         {
@@ -318,6 +1067,9 @@ namespace UE4localizationsTool.Helper
 
             this.appId = appId.Trim();
             this.secretKey = secretKey.Trim();
+            TranslationProviderSettings settings = TranslationSettingsStore.Load();
+            formattingRules = (settings.FormattingRules ?? new TranslationFormattingRules()).Normalize();
+            terminologyEntries = settings.TerminologyEntries ?? new List<TranslationTerminologyEntry>();
         }
 
         public TranslationProviderType ProviderType => TranslationProviderType.Baidu;
@@ -329,7 +1081,7 @@ namespace UE4localizationsTool.Helper
                 throw new InvalidOperationException("目标语言不能为空。");
             }
 
-            return TranslationTextFormatter.TranslateAsync(sourceText, sourceLanguage, targetLanguage, preserveFormatting, TranslateCoreAsync);
+            return TranslationTextFormatter.TranslateAsync(sourceText, sourceLanguage, targetLanguage, preserveFormatting, formattingRules, terminologyEntries, TranslateCoreAsync);
         }
 
         private async Task<string> TranslateCoreAsync(string sourceText, string sourceLanguage, string targetLanguage)
@@ -441,6 +1193,8 @@ namespace UE4localizationsTool.Helper
         private readonly string secretId;
         private readonly string secretKey;
         private readonly string region;
+        private readonly TranslationFormattingRules formattingRules;
+        private readonly List<TranslationTerminologyEntry> terminologyEntries;
 
         public TencentTranslationService(string secretId, string secretKey, string region)
         {
@@ -452,6 +1206,9 @@ namespace UE4localizationsTool.Helper
             this.secretId = secretId.Trim();
             this.secretKey = secretKey.Trim();
             this.region = string.IsNullOrWhiteSpace(region) ? "ap-beijing" : region.Trim();
+            TranslationProviderSettings settings = TranslationSettingsStore.Load();
+            formattingRules = (settings.FormattingRules ?? new TranslationFormattingRules()).Normalize();
+            terminologyEntries = settings.TerminologyEntries ?? new List<TranslationTerminologyEntry>();
         }
 
         public TranslationProviderType ProviderType => TranslationProviderType.Tencent;
@@ -468,7 +1225,7 @@ namespace UE4localizationsTool.Helper
                 throw new InvalidOperationException("腾讯翻译当前需要手动指定源语言。");
             }
 
-            return TranslationTextFormatter.TranslateAsync(sourceText, sourceLanguage, targetLanguage, preserveFormatting, TranslateCoreAsync);
+            return TranslationTextFormatter.TranslateAsync(sourceText, sourceLanguage, targetLanguage, preserveFormatting, formattingRules, terminologyEntries, TranslateCoreAsync);
         }
 
         private Task<string> TranslateCoreAsync(string sourceText, string sourceLanguage, string targetLanguage)
