@@ -1,7 +1,10 @@
-# UE4/5 本地化工具功能扩展中文版 v0.2.9
+# UE4/5 本地化工具功能扩展中文版 v0.3.0
 
-<img width="1020" height="485" alt="0 2 9 UI" src="https://github.com/user-attachments/assets/253451fd-b77d-49f8-987f-6697dac5409e" />
-
+<img width="982" height="447" alt="9b520bbc-7f20-447d-8546-14df2b8c5347" src="https://github.com/user-attachments/assets/18b576dd-d1a5-40df-8dab-3cd2f4a392a0" />
+<img width="982" height="447" alt="0ee79675-8835-4c32-9885-0273e05d0d44" src="https://github.com/user-attachments/assets/ab2a46d7-0dbf-434c-8fb0-776ee482a058" />
+<img width="1020" height="485" alt="QQ20260428-005121" src="https://github.com/user-attachments/assets/fb8444a5-87ea-4b33-8306-1b8e2f82612e" />
+<img width="1020" height="485" alt="QQ20260428-005148" src="https://github.com/user-attachments/assets/ccda40ef-c5d4-44a0-9975-5fb1f65e239d" />
+<img width="958" height="628" alt="QQ20260428-005207" src="https://github.com/user-attachments/assets/6fe5ad59-5491-4372-9da2-69c8d1f08379" />
 
 ## 1. 工具简介
 
@@ -112,11 +115,11 @@
 
 ### 6.6 应用选中预览至文本值
 
-将当前选中行中的 `机器翻译预览` 内容写入 `Text value`，并同步更新 `Value hash`。
+将当前选中行中的 `机器翻译预览` 内容写入 `Text value`，不会修改命名空间哈希、键哈希、文本哈希。
 
 ### 6.7 应用全部预览至文本值
 
-将所有已有 `机器翻译预览` 内容写入 `Text value`，并同步更新 `Value hash`。
+将所有已有 `机器翻译预览` 内容写入 `Text value`，不会修改命名空间哈希、键哈希、文本哈希。
 
 ### 6.8 按行号批量选中
 
@@ -301,16 +304,47 @@
   - `仅翻译当前选中行`
   - `翻译前 N 行`
   - `翻译全部可用行`
+- 翻译术语管理
 
 使用说明：
 
 - 第一次使用前，先到 `工具 -> 翻译接口设置...` 保存接口凭证
+- 如需细分保护规则，可到 `工具 -> 翻译规则设置...` 勾选具体规则
+- 如需固定某些词或短语的译法，可到 `工具 -> 翻译术语管理...` 配置术语表
+- 术语窗口支持 `导出术语...` 与 `导入术语...`
+- 可手动保存或加载本地术语 `csv / json`
 - 翻译结果会写入右侧 `机器翻译预览` 列
 - 预览列仅用于查看和对比，不会自动保存，也不会自动覆盖原文本
-- 执行“应用预览”后，程序会把预览内容写入 `Text value` 并同步更新 `Value hash`
-- 翻译接口配置文件保存在：
-  - `%LocalAppData%\\UE4本地化工具\\translation-settings.json`
-- 如果需要手动修改接口配置，可直接编辑该 `json` 文件
+- 执行“应用预览”后，程序只会把预览内容写入 `Text value`
+- 本操作不会修改命名空间哈希、键哈希、文本哈希，适合部分“改哈希会失效”的游戏场景
+- 本机配置文件默认保存在：
+  - 翻译接口设置：`%LocalAppData%\\UE4本地化工具\\translation-provider-settings.json`
+  - 翻译规则设置：`%LocalAppData%\\UE4本地化工具\\translation-rule-settings.json`
+  - 翻译术语数据：`%LocalAppData%\\UE4本地化工具\\translation-terminology-settings.json`
+- 旧版共用配置文件 `translation-settings.json` 仍兼容读取，用于自动承接旧配置
+
+当前可配置的翻译保护规则：
+
+- 保留转义控制符：`\n` / `\r` / `\t`
+- 保留常见占位符：`%s` / `%d` / `{0}` / `${name}`
+- 保留尖括号标签：`<color>` / `<br>` 等
+- 保留方括号标签：`[b]` / `[/b]` / `[Icon]` 等
+- 保留首尾空白：开头/结尾空格、Tab、换行
+- 支持自定义额外保护规则：每行一个正则表达式
+- 规则窗口内提供 `全部默认` 与 `全部取消` 快捷按钮
+
+术语管理支持：
+
+- 词性：`名词 / 动词 / 形容词 / 副词`
+- 术语原文：支持单词或短语
+- 术语译文：命中后固定使用该译文
+- 术语变体：指术语原文的其他写法，每行一个，按回车添加
+- 额外说明：用于记录上下文或翻译要求
+- 大小写敏感：可按术语单独控制
+- 匹配方式：按完整词 / 完整短语匹配，不会按片段误命中
+- 支持手动导出术语到本地 `csv / json` 文件
+- 支持从本地 `csv / json` 文件导入术语，并可选择“替换当前列表”或“追加到当前列表”
+- `csv` 导出表头为中文，适合直接用 Excel / WPS 按列编辑
 
 按行号批量选中支持格式：
 
@@ -445,14 +479,16 @@ UE4localizationsTool.exe export Actions.uasset -method2 -NoName -filter
 - 如果你修改了文本内容，通常更推荐最后执行一次 `重算所有哈希值`
 - 机器翻译预览不会自动保存，也不会自动覆盖原文件
 - 各翻译接口凭证会单独保存到本机用户目录，不会写入项目源码
-- 本机接口配置文件默认路径：`%LocalAppData%\\UE4本地化工具\\translation-settings.json`
+- 本机翻译接口配置文件默认路径：`%LocalAppData%\\UE4本地化工具\\translation-provider-settings.json`
+- 本机翻译规则配置文件默认路径：`%LocalAppData%\\UE4本地化工具\\translation-rule-settings.json`
+- 本机翻译术语配置文件默认路径：`%LocalAppData%\\UE4本地化工具\\translation-terminology-settings.json`
 - 如果顶部内容显示较多，可以拖拽窗口边缘自由调整大小
 
 ## 14. 关于本版本
 
 当前版本：
 
-- `UE4/5 本地化工具功能扩展中文版 v0.2.9`
+- `UE4/5 本地化工具功能扩展中文版 v0.3.0`
 
 赞助链接：
 
